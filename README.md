@@ -21,3 +21,6 @@ Modification and redistribution of this program is permitted
 
 ## Disclaimer
 The author assumes no responsibility for any damages resulting from the downloading, installation, use, or distribution of this program, or from the use, distribution, or any other use or distribution of materials generated using this program.
+
+## release notes
+- 14.03.2024 ver.0 release
