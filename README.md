@@ -5,7 +5,7 @@ When modifying simutrans pak files using this program or distributing modified p
 ## Usage
 This program consists of a python file.  
 
-After you select input original pak file and name output pak file, This program ask you whether modify some setting of the vehicle pak. Please input modified values or names. If you not put any values, or input wrong values, the setting will not be modified.
+After you select input original pak file and name output pak file, This program ask you whether modify some setting of the vehicle pak. Please input modified values or names. If you not put any values (enter "x" in the connecting setting), or input wrong values, the setting will not be modified.
 ### Command line usage
 python vehicle_arranger.py input_file_path (output_file_path)  
 
@@ -24,3 +24,22 @@ The author assumes no responsibility for any damages resulting from the download
 
 ## release notes
 - 14.03.2024 ver.0 release
+
+# vehicle_arranger 取扱説明書
+このプログラムはsimutransの乗り物アドオンのpakを編集するプログラムです。
+## 注意事項
+本プログラムを用いてpakファイルを改造、または改造したファイルを公開する場合は、必ず元のアドオンの作者に許可を得て行ってください。
+## 使い方
+このプログラムはpythonファイルです。
+
+起動し、入力ファイルと出力ファイル名を入力すると、入力ファイル内の乗り物アドオンの詳細な設定事項の一部がコマンドラインに出力されます。コマンドラインより修正が必要な事項を記入してください。何も入力しなかった場合(連結の設定ではxを入力した場合)、または不適当な入力の場合、設定事項は変更されません。
+## 著作者
+simupoppo(@simu__poppo)  
+お気づきの点がございましたら、@simu__poppoまたは https://simutranshouse.wixsite.com/simutp までお問い合わせください。
+## ライセンス
+CC-BY 4.0  
+このプログラムの改造、再配布について制限はございません。
+## 免責事項
+本プログラムのダウンロード、インストール、使用、頒布および本プログラムを使用し作成したファイルの使用、頒布、その他により発生したいかなる損害について、作者は一切の責任を負いかねます。
+## リリースノート
+- 2024年3月14日 ver.0 リリース
