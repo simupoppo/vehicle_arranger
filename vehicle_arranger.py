@@ -5,8 +5,32 @@ import sys
 # read argv
 args = sys.argv
 
-# UI functiono
+# UI function
 # on going...
+def UI_function():
+    where_show=0
+    print_function("What is the input file name?",where_show)
+    infile_path=input_function()
+    print_function("What is the output file name?",where_show)
+    outfile_path=input_function()
+    return infile_path,outfile_path,where_show
+
+
+
+
+# main: only read args
+def main():
+    if len(args)>2:
+        infile_path=args[1]
+        outfile_path=args[2]
+        where_show=0
+    elif len(args)==2:
+        infile_path=args[1]
+        outfile_path=args[1]
+        where_show=0
+    else:
+        infile_path,outfile_path,where_show=UI_function()
+    vehicle_arrange(infile_path,outfile_path,where_show)
 
 
 
@@ -374,7 +398,11 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
 
 
 
-    
+    samefile_flag=0
+    if infile_path==outfile_path:
+        samefile_flag=1
+        print_function("an output file and an input file are same.")
+        outfile_path="temp_"+outfile_path
 
     try:
         infile=open(infile_path,"br")
@@ -390,9 +418,13 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
         return False
     infile.close()
     outfile.close()
+    if samefile_flag==1:
+        os.remane(infile_path,infile_path[:-4]+"_old.pak")
+        os.rename(outfile_path,infile_path)
     if a:
         print_function("pak arranging is done!",where_show)
 
 
 
-    
+if __name__ == "__main__":
+    main()
