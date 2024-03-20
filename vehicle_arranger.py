@@ -143,7 +143,7 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
                         outfile.write(copy_data)
                     else:
                         bytes+=copy_data
-                    bytes+=copy_object(infile,outfile,obj_nchild,holdflag,bytes=b"")
+                bytes+=copy_object(infile,outfile,obj_nchild,holdflag,bytes=b"")
         if holdflag==1:
             return bytes
     def copy_node(infile,node):
