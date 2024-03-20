@@ -138,11 +138,11 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
                     obj_size = int.from_bytes(obj_size_byte32,byteorder="little")
                 else:
                     obj_size = int.from_bytes(obj_size_byte,byteorder="little")
-                    copy_data = infile.read(obj_size)
-                    if holdflag!=1:
-                        outfile.write(copy_data)
-                    else:
-                        bytes+=copy_data
+                copy_data = infile.read(obj_size)
+                if holdflag!=1:
+                    outfile.write(copy_data)
+                else:
+                    bytes+=copy_data
                 bytes+=copy_object(infile,outfile,obj_nchild,holdflag,bytes=b"")
         if holdflag==1:
             return bytes
