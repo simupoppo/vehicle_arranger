@@ -24,6 +24,7 @@ The author assumes no responsibility for any damages resulting from the download
 
 ## release notes
 - 14.03.2024 ver.0 release
+- 20.03.2024 ver.0.1 correction of misprints  
 
 # vehicle_arranger 取扱説明書
 このプログラムはsimutransの乗り物アドオンのpakファイルを編集するプログラムです。
@@ -42,4 +43,5 @@ CC-BY 4.0
 ## 免責事項
 本プログラムのダウンロード、インストール、使用、頒布および本プログラムを使用し作成したファイルの使用、頒布、その他により発生したいかなる損害について、作者は一切の責任を負いかねます。
 ## リリースノート
-- 2024年3月14日 ver.0 リリース
+- 2024年3月14日 ver.0 リリース  
+- 2024年3月20日 ver.0.1 誤植の修正  
