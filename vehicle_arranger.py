@@ -426,8 +426,14 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
         trailer=int.from_bytes(trailer_byte,byteorder="little")
         temp_obj_size-=1
         new_obj_size+=1
+        # freight image number (only for version updating)
+        others_byte=b""
+        if version<8 and write_version>7:
+            freight_image_number_int=0
+            others_byte+=freight_image_number_int.to_bytes(1,byteorder="little")
+            new_obj_size+=1
         # other_params_reading
-        others_byte=infile.read(temp_obj_size)
+        others_byte+=infile.read(temp_obj_size)
         others_byte+=copy_object(infile,outfile,6,holdflag=1,bytes=b"",need_return=1)
         new_obj_size+=temp_obj_size
         temp_obj_size=0
