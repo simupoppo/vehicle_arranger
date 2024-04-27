@@ -288,10 +288,13 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
             if version>9:
                 weight_byte32 = infile.read(4)
                 temp_obj_size-=4
+                weight = int.from_bytes(weight_byte32,byteorder="little")
             else:
                 weight_byte32 = infile.read(2)
+                weight = int.from_bytes(weight_byte32,byteorder="little")
+                if write_version>9:
+                    weight = weight*1000
                 temp_obj_size-=2
-            weight = int.from_bytes(weight_byte32,byteorder="little")
             weight = ask_function("weight = "+str(weight),weight,where_show,1)
             if write_version>9:
                 temp_headnode+=(weight.to_bytes(4,byteorder="little"))
