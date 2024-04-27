@@ -138,11 +138,11 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
                     obj_size = int.from_bytes(obj_size_byte32,byteorder="little")
                 else:
                     obj_size = int.from_bytes(obj_size_byte,byteorder="little")
-                copy_data = infile.read(obj_size)
-                if holdflag!=1:
-                    outfile.write(copy_data)
-                else:
-                    bytes+=copy_data
+                    copy_data = infile.read(obj_size)
+                    if holdflag!=1:
+                        outfile.write(copy_data)
+                    else:
+                        bytes+=copy_data
                 bytes+=copy_object(infile,outfile,obj_nchild,holdflag,bytes=b"")
         if holdflag==1:
             return bytes
@@ -227,16 +227,29 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
     def vehicle_arranging(infile,outfile,obj_nchild,obj_size):
         temp_headnode=b""
         temp_obj_size=obj_size
+        new_obj_size=0
         # copy and arrange setting of vehicle
         # version
         version_byte=copy_node(infile,2)
-        temp_headnode+=version_byte
-        temp_obj_size-=2
         version_int=int.from_bytes(version_byte,byteorder="little")
         if version_int & 0x8000:
             version=version_int&0x7FFF
         else:
             version=0
+        # pakfile version changing
+        if version>0:
+            ask_version=ask_function("Do you want to change pak version to 0x800B? yes=1,no=other","1",where_show,0)
+        if ask_version=="1":
+            print_function("change version",where_show)
+            new_version=0x800b
+            write_version=11
+        else:
+            print_function("NOT change version",where_show)
+            new_version=version
+            write_version=version
+        temp_headnode+=new_version.to_bytes(2,byteorder="little")
+        temp_obj_size-=2
+        new_obj_size+=2
         if version>0:
             # cost
             price_byte32 = infile.read(4)
@@ -244,26 +257,33 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
             price = ask_function("cost = "+str(price),price,where_show,1)
             temp_headnode+=(price.to_bytes(4,byteorder="little"))
             temp_obj_size-=4
+            new_obj_size+=4
             # capacity
             capacity_byte = infile.read(2)
             price = int.from_bytes(capacity_byte,byteorder="little")
             price = ask_function("capacity = "+str(price),price,where_show,1)
             temp_headnode+=(price.to_bytes(2,byteorder="little"))
             temp_obj_size-=2
+            new_obj_size+=2
             # loading_time
             if version>8:
                 # depends on the version
                 l_time_byte = infile.read(2)
+                temp_obj_size-=2
                 l_time = int.from_bytes(l_time_byte,byteorder="little")
+            else:
+                l_time = 1000
+            if write_version>8:
                 l_time = ask_function("loading time = "+str(l_time),l_time,where_show,1)
                 temp_headnode+=(l_time.to_bytes(2,byteorder="little"))
-                temp_obj_size-=2
+                new_obj_size+=2
             # speed
             speed_byte = infile.read(2)
             speed_int = int.from_bytes(speed_byte,byteorder="little")
             speed_int = ask_function("top speed = "+str(speed_int),speed_int,where_show,1)
             temp_headnode+=(speed_int.to_bytes(2,byteorder="little"))
             temp_obj_size-=2
+            new_obj_size+=2
             # weight
             if version>9:
                 weight_byte32 = infile.read(4)
@@ -273,48 +293,65 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
                 temp_obj_size-=2
             weight = int.from_bytes(weight_byte32,byteorder="little")
             weight = ask_function("weight = "+str(weight),weight,where_show,1)
-            if version>9:
+            if write_version>9:
                 temp_headnode+=(weight.to_bytes(4,byteorder="little"))
+                new_obj_size+=4
             else:
                 temp_headnode+=(weight.to_bytes(2,byteorder="little"))
+                new_obj_size+=2
             # axle_load
             if version>8:
-                temp_headnode+=copy_node(infile,2)
+                axle_byte=infile.read(2)
+                axle_int=int.from_bytes(axle_byte,byteorder="little")
                 temp_obj_size-=2
+            else:
+                axle_int=0
+            if write_version>8:
+                axle_int=ask_function("axle_load="+str(axle_int),axle_int,where_show,1)
+                temp_headnode+=(axle_int.to_bytes(2,byteorder="little"))
+                new_obj_size+=2  
             # power
             if version>5:
                 power_byte32 = infile.read(4)
-            else:
-                power_byte32 = infile.read(2)
-            power = int.from_bytes(power_byte32,byteorder="little")
-            power = ask_function("power = "+str(power)+"kW",power,where_show,1)
-            if version>5:
-                temp_headnode+=(power.to_bytes(4,byteorder="little"))
                 temp_obj_size-=4
             else:
-                temp_headnode+=(power.to_bytes(2,byteorder="little"))
+                power_byte32 = infile.read(2)
                 temp_obj_size-=2
+            power = int.from_bytes(power_byte32,byteorder="little")
+            power = ask_function("power = "+str(power)+"kW",power,where_show,1)
+            if write_version>5:
+                temp_headnode+=(power.to_bytes(4,byteorder="little"))
+                new_obj_size+=4
+            else:
+                temp_headnode+=(power.to_bytes(2,byteorder="little"))
+                new_obj_size+=2
             # running cost
             rcost_byte = infile.read(2)
             rcost = int.from_bytes(rcost_byte,byteorder="little")
             rcost = ask_function("running cost = "+str(rcost),rcost,where_show,1)
             temp_headnode+=(rcost.to_bytes(2,byteorder="little"))
             temp_obj_size-=2
+            new_obj_size+=2
             # monthly maintenance
             # depends on the version
             if version >8:
                 if version>10:
                     mcost_byte32 = infile.read(4)
-                else:
-                    mcost_byte32 = infile.read(2)
-                mcost = int.from_bytes(mcost_byte32,byteorder="little")
-                mcost = ask_function("mcost = "+str(mcost),mcost,where_show,1)
-                if version>10:
-                    temp_headnode+=(mcost.to_bytes(4,byteorder="little"))
                     temp_obj_size-=4
                 else:
-                    temp_headnode+=(mcost.to_bytes(2,byteorder="little"))
+                    mcost_byte32 = infile.read(2)
                     temp_obj_size-=2
+                mcost = int.from_bytes(mcost_byte32,byteorder="little")
+            else:
+                mcost = 0
+            if write_version>8:
+                mcost = ask_function("mcost = "+str(mcost),mcost,where_show,1)
+                if write_version>10:
+                    temp_headnode+=(mcost.to_bytes(4,byteorder="little"))
+                    new_obj_size+=4
+                else:
+                    temp_headnode+=(mcost.to_bytes(2,byteorder="little"))
+                    new_obj_size+=2
         else:
             print_function("Too old",where_show)
             return False
@@ -325,45 +362,72 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
         intro_m = ask_function("intro_month:"+str(intro_m),intro_m,where_show,1)
         temp_headnode+=(date_to_byte(intro_y,intro_m))
         temp_obj_size-=2
+        new_obj_size+=2
         # Retire year
         if version>2:
             retire_byte = infile.read(2)
+            temp_obj_size-=2
             retire_y,retire_m = byte_to_date(retire_byte)
+        else:
+            retire_y,retire_m=0,1
+        if write_version>2:
             retire_y = ask_function("retire_year :"+str(retire_y),retire_y,where_show,1)
             retire_m = ask_function("retire_month:"+str(retire_m),retire_m,where_show,1)
             temp_headnode+=(date_to_byte(retire_y,retire_m))
-            temp_obj_size-=2
+            new_obj_size+=2
         # Engine gear
         if version>5:
-            temp_headnode+=copy_node(infile,2)
+            gear_byte=infile.read(2)
             temp_obj_size-=2
         else:
-            temp_headnode+=copy_node(infile,1)
+            gear_byte=infile.read(1)
             temp_obj_size-=1
+        gear_int=int.from_bytes(gear_byte,byteorder="little")
+        if write_version>5:
+            temp_headnode+=(gear_int.to_bytes(2,byteorder="little"))
+            new_obj_size+=2
+        else:
+            temp_headnode+=(gear_int.to_bytes(1,byteorder="little"))
+            new_obj_size+=1
         # waytype
         temp_headnode+=copy_node(infile,1)
         temp_obj_size-=1
+        new_obj_size+=1
         # sound id
         temp_headnode+=copy_node(infile,1)
         temp_obj_size-=1
+        new_obj_size+=1
         # engine type
         temp_headnode+=copy_node(infile,1)
         temp_obj_size-=1
+        new_obj_size+=1
         # length
         if version>6:
-            temp_headnode+=copy_node(infile,1)
+            vlength_byte=infile.read(1)
+            vlength_int=int.from_bytes(vlength_byte,byteorder="little")
             temp_obj_size-=1
+        else:
+            vlength_int=8
+        if write_version>6:
+            temp_headnode+=(vlength_int.to_bytes(1,byteorder="little"))
+            new_obj_size+=1
+
+        
         # leader reading
         leader_byte=infile.read(1)
         leader=int.from_bytes(leader_byte,byteorder="little")
         temp_obj_size-=1
+        new_obj_size+=1
         # trailer reading
         trailer_byte=infile.read(1)
         trailer=int.from_bytes(trailer_byte,byteorder="little")
         temp_obj_size-=1
+        new_obj_size+=1
         # other_params_reading
         others_byte=infile.read(temp_obj_size)
         others_byte+=copy_object(infile,outfile,6,holdflag=1,bytes=b"",need_return=1)
+        new_obj_size+=temp_obj_size
+        temp_obj_size=0
         # leader and trailer reading
         temp_leaders=[]
         temp_trailers=[]
@@ -377,7 +441,7 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
         new_node=obj_nchild-leader-trailer+len(result_leader_list)+len(result_trailer_list)
         # new node writing
         outfile.write(new_node.to_bytes(2,byteorder="little"))
-        outfile.write(obj_size.to_bytes(2,byteorder="little"))
+        outfile.write(new_obj_size.to_bytes(2,byteorder="little"))
         outfile.write(temp_headnode)
         outfile.write(len(result_leader_list).to_bytes(1,byteorder="little"))
         outfile.write(len(result_trailer_list).to_bytes(1,byteorder="little"))
