@@ -71,14 +71,78 @@ def ask_function(texts,answer,where_show=0,output_type=0):
 
 # main_function
 def vehicle_arrange(infile_path,outfile_path,where_show=0):
-    def byte_to_date(inbyte):
+    climate_list=["water", "desert", "tropic", "mediterran", "temperate", "tundra", "rocky", "arctic"]
+    def byte_to_date(inbyte,version=1):
         indate=int.from_bytes(inbyte,byteorder="little")
+        if version==0:
+            indata=indata//16*12+indata%16
         year=indate//12
         date=indate%12+1
         return year,date
-    def date_to_byte(year,date):
-        temp_date=year*12+date-1
+    def date_to_byte(year,date,version=1):
+        if version==1:
+            temp_date=year*12+date-1
+        if version==0:
+            temp_date=year*16+date-1
         return temp_date.to_bytes(2,byteorder="little")
+    def int_to_climates(input):
+        return_list=[]
+        for i in range(len(climate_list)):
+            climate_void=(input & 2**i)>>i
+            if climate_void==1:
+                return_list.append(climate_list[i])
+        return return_list
+    def climates_to_int(input_list):
+        return_int=0
+        for i in range(len(climate_list)):
+            for j in range(input_list):
+                if climate_list[i]==input_list[j]:
+                    return_int+=2**i
+        return return_int
+    def climate_changing(input_int,where_show):
+        continue_flag=1
+        return_int=input_int
+        temp_climate_list=int_to_climates(input_int)
+        while continue_flag==1:
+            print_function("Allowed Climate List:",where_show)
+            for i in range(len(temp_climate_list)):
+                print_function(str(i)+":"+str(temp_climate_list[i]),where_show)
+            print_function("-------------------",where_show)
+            print_function("Do you want to change allowed climate? Please select changing way.",where_show)
+            print_function("1.Remove an Allowed Climate",where_show)
+            print_function("2.Add an Allowed Climate",where_show)
+            print_function("x.Exit (Not Change)",where_show)
+            choice=input_function(where_show=where_show)
+            if str(choice)==1:
+                print_function("-------------------",where_show)
+                print_function("Which one do you want to remove? Select number.",where_show)
+                for i in range(len(temp_climate_list)):
+                    print_function(str(i)+":"+str(temp_climate_list[i]),where_show)
+                print_function("x:Exit",where_show)
+                remove_choice=input_function(where_show=where_show)
+                for i in range(len(temp_climate_list)):
+                    if str(remove_choice)==str(i): 
+                        temp_climate_list.pop(i)
+                        print_function("remove "+str(temp_climate_list[i]),where_show)
+            elif str(choice)==2:
+                print_function("-------------------",where_show)
+                print_function("Which one do you want to add? Select number.",where_show)
+                for i in range(len(climate_list)):
+                    print_function(str(i)+":"+str(climate_list[i]),where_show)
+                print_function("x:Exit",where_show)
+                add_choice=input_function(where_show=where_show)
+                for i in range(len(temp_climate_list)):
+                    if str(add_choice)==str(i): 
+                        if climate_list[i] in temp_climate_list:
+                            print_function("Already added"+str(climate_list[i]),where_show)
+                        else:
+                            climate_list.append(str(climate_list[i]))    
+                            print_function("add "+str(climate_list[i]),where_show)
+            else:
+                print_function("End changing allowed climate.",where_show)
+                continue_flag=0
+        return_int=climates_to_int(temp_climate_list)
+        return return_int
     def copy_header(infile,outfile):
         # copy file header 
         for i in range(1000):
@@ -152,7 +216,7 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
     def Remove_None(list):
         output=[]
         for i in range(len(list)):
-            if str(list[i])!="none":
+            if str(list[i])!="none" or list[i]==b"\x00":
                 output.append(list[i])
             # print(output)
         return output
@@ -168,6 +232,7 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
         return output
     def connecting_changing(connecting_list,l_or_r="leader"):
         print_function(l_or_r+" list",where_show)
+        print_function("list length:"+str(len(connecting_list)),where_show)
         print_function("number\tname",where_show)
         for i in range(len(connecting_list)):
             print_function(str(i)+"\t"+str(connecting_list[i]),where_show)
@@ -242,10 +307,10 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
         if ask_version=="1":
             print_function("change version",where_show)
             new_version=0x800b
-            write_version=11
+            write_version=new_version&0x7FFF
         else:
             print_function("NOT change version",where_show)
-            new_version=version
+            new_version=version|0x8000
             write_version=version
         temp_headnode+=new_version.to_bytes(2,byteorder="little")
         temp_obj_size-=2
@@ -360,7 +425,10 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
             return False
         # Intro year
         intro_byte = infile.read(2)
-        intro_y,intro_m = byte_to_date(intro_byte)
+        if version<5:
+            intro_y,intro_m = byte_to_date(intro_byte,version=0)
+        else:
+            intro_y,intro_m = byte_to_date(intro_byte)
         intro_y = ask_function("intro_year :"+str(intro_y),intro_y,where_show,1)
         intro_m = ask_function("intro_month:"+str(intro_m),intro_m,where_show,1)
         temp_headnode+=(date_to_byte(intro_y,intro_m))
@@ -370,13 +438,19 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
         if version>2:
             retire_byte = infile.read(2)
             temp_obj_size-=2
-            retire_y,retire_m = byte_to_date(retire_byte)
+            if version<5:
+                retire_y,retire_m = byte_to_date(retire_byte,version=0)
+            else:
+                retire_y,retire_m = byte_to_date(retire_byte)
         else:
-            retire_y,retire_m=0,1
+            retire_y,retire_m=2999,1
         if write_version>2:
             retire_y = ask_function("retire_year :"+str(retire_y),retire_y,where_show,1)
             retire_m = ask_function("retire_month:"+str(retire_m),retire_m,where_show,1)
-            temp_headnode+=(date_to_byte(retire_y,retire_m))
+            if version<5:
+                temp_headnode+=(date_to_byte(retire_y,retire_m,version=0))
+            else:
+                temp_headnode+=(date_to_byte(retire_y,retire_m))
             new_obj_size+=2
         # Engine gear
         if version>5:
@@ -411,6 +485,7 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
             temp_obj_size-=1
         else:
             vlength_int=8
+        vlength_int = ask_function("mcost = "+str(vlength_int),vlength_int,where_show,1)
         if write_version>6:
             temp_headnode+=(vlength_int.to_bytes(1,byteorder="little"))
             new_obj_size+=1
@@ -466,7 +541,249 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
             copy_object(infile,outfile,ANOTHERS,holdflag=0)
         return True
 
+    def building_arranging(infile,outfile,obj_nchild,obj_size):
+        btype_tuple=(
+            "unknown",#0
+            "attraction_city",#1
+            "attraction_land",#2
+            "monument",#3
+            "factory",#4
+            "townhall",#5
+            "others",#6
+            "headquarters",#7
+            "bahnhof",#8,old_building_types
+            "bushalt",#9,old_building_types
+            "ladebucht",#10,old_building_types
+            "dock",#11
+            "binnenhafen",#12,old_building_types
+            "airport",#13,old_building_types
+            "monorailstop",#14,old_building_types
+            "",#15 is empty
+            "bahnhof_geb",#16,old_building_types
+            "bushalt_geb",#17,old_building_types
+            "ladebucht_geb",#18,old_building_types
+            "hagen_geb",#19,old_building_types
+            "binnenhafen_geb",#20,old_building_types
+            "airport_geb",#21,old_building_types
+            "monorail_geb",#22,old_building_types
+            "",#23 is empty
+            "",#24 is empty
+            "",#25 is empty
+            "",#26 is empty
+            "",#27 is empty
+            "",#28 is empty
+            "",#29 is empty
+            "wartehalle",#30,old_building_types
+            "mail",#31,old_building_types
+            "lagerhalle",#32,old_building_types
+            "depot",#33
+            "generic_stop",#34
+            "generic_extension",#35
+            "flat_dock",#36
+            "city_res",#37
+            "city_com",#38
+            "city_ind"#39
+        )
+        old_btype_tuple=(
+            "wohnung",
+            "gewerbe",
+            "industrie",
+            "unknown"
+        )
+            
+                
+        temp_headnode=b""
+        temp_obj_size=obj_size
+        new_obj_size=0
+        # copy and arrange setting of vehicle
+        # version
+        version_byte=copy_node(infile,2)
+        version_int=int.from_bytes(version_byte,byteorder="little")
+        if version_int & 0x8000:
+            version=version_int&0x7FFF
+        else:
+            version=0
+        # pakfile version changing
+        if version>0:
+            ask_version=ask_function("Do you want to change pak version to 0x800A? yes=1,no=other","1",where_show,0)
+        if ask_version=="1":
+            print_function("change version",where_show)
+            new_version=0x800a
+            write_version=new_version&0x7FFF
+        else:
+            print_function("NOT change version",where_show)
+            new_version=version_int
+            write_version=version
+        temp_headnode+=new_version.to_bytes(2,byteorder="little")
+        temp_obj_size-=2
+        new_obj_size+=2  
+        if version<0:
+            return False
+        else:
+            old_btype_byte=infile.read(1)
+            btype_byte=infile.read(1)
+            temp_obj_size-=2
+            old_btype_int=int.from_bytes(old_btype_byte,byteorder="little")
+            btype_int=int.from_bytes(btype_byte,byteorder="little")
+            level_byte=infile.read(2)
+            temp_obj_size-=2
+            level_int=int.from_bytes(level_byte,byteorder="little")+1
+            extra_data_byte=infile.read(4)
+            temp_obj_size-=4
+            extra_data=int.from_bytes(extra_data_byte,byteorder="little")
+            size_x_byte=infile.read(2)
+            temp_obj_size-=2
+            size_y_byte=infile.read(2)
+            temp_obj_size-=2
+            layout_byte=infile.read(1)
+            temp_obj_size-=1
+            size_x_int=int.from_bytes(size_x_byte,byteorder="little")
+            size_y_int=int.from_bytes(size_y_byte,byteorder="little")
+            layout_int=int.from_bytes(layout_byte,byteorder="little")
+            if version>3:
+                allowed_climates_byte=infile.read(2)
+                temp_obj_size-=2
+                allowed_climates_int=int.from_bytes(allowed_climates_byte,byteorder="little")
+            else:
+                allowed_climates_int=0x00FE
+            if version> 2:
+                enables_byte=infile.read(1)
+                temp_obj_size-=1
+                enables_int=int.from_bytes(enables_byte,byteorder="little")
+            else:
+                enables_int=0x80
+            build_flag_byte=infile.read(1)
+            temp_obj_size-=1
+            build_flag_int=int.from_bytes(build_flag_byte,byteorder="little")
+            # distribution weight
+            build_chance_byte=infile.read(1)
+            temp_obj_size-=1
+            build_chance_int=int.from_bytes(build_chance_byte,byteorder="little")
+            # intro and retire date
+            if version>1:
+                intro_byte=infile.read(2)
+                retire_byte=infile.read(2)
+                temp_obj_size-=4
+                intro_y,intro_m=byte_to_date(intro_byte)
+                retire_y,retire_m=byte_to_date(retire_byte)
+            else:
+                intro_y=1900
+                intro_m=1
+                retire_y=2999
+                retire_m=1
+            # animation frame per ms
+            if version>4:
+                animation_time_byte=infile.read(2)
+                temp_obj_size-=2
+                animation_time=int.from_bytes(animation_time_byte,byteorder="little")
+            else:
+                animation_time=300
+            # capacity, maintenance cost, price
+            if version>7:
+                capacity_byte=infile.read(2)
+                temp_obj_size-=2
+                capacity_int=int.from_bytes(capacity_byte,byteorder="little")
+                maintenance_byte=infile.read(4)
+                temp_obj_size-=4
+                maintenance_int=int.from_bytes(maintenance_byte,byteorder="little")
+                price_byte=infile.read(4)
+                temp_obj_size-=4
+                price_int=int.from_bytes(price_byte,byteorder="little")
+            else:
+                capacity_int=level_int*32
+                maintenance_int=level_int*100
+                price_int=level_int*1000
+            # allow underground
+            if version>6:
+                allow_underground_byte=infile.read(1)
+                temp_obj_size-=1
+                allow_underground_int=int.from_bytes(allow_underground_byte,byteorder="little")
+            else:
+                allow_underground_int=255
+            # preservation year month
+            if version>9:
+                preservation_ym_byte=infile.read(2)
+                temp_obj_size-=2
+                preservation_y,preservation_m=byte_to_date(preservation_ym_byte)
+            else:
+                preservation_y=retire_y
+                preservation_m=retire_m                
+            #
+            # building extra data
+            #
+            # building
+            #      btype     ,    extra     ,   level   ,   enables
+            #   res/com/ind  , cluster data ,   level   ,      -
+            #       cur      , if 1 -> city ,passengers ,      -
+            #       cur      , if 0 -> land ,passengers ,      -
+            #       mon      ,      -       ,passengers ,      -
+            #       tow      ,  build-time  ,passengers ,      -
+            #       hq       ,  hq-level    ,passengers ,      -
+            #   dock"habour" , water-waytype,   level   ,      -
+            # flat-dock"dock", water-waytype,   level   ,      -
+            #     factory    ,      -       ,   level   ,     |=4
+            # stop/extension ,    waytype   ,   level   ,|=1:pax/|=2:post/|=4:ware
+            #      depot     ,    waytype   ,     -     ,      -
+            #
+            #
+            # Arranging addons
+            #
+            #
+            #
+            # Write output nodes
+            temp_headnode+=old_btype_int.to_bytes(1,byteorder="little")
+            new_obj_size+=1
+            temp_headnode+=btype_int.to_bytes(1,byteorder="little")
+            new_obj_size+=1
+            temp_headnode+=level_int.to_bytes(2,byteorder="little")
+            new_obj_size+=2
+            temp_headnode+=extra_data.to_bytes(4,byteorder="little")
+            new_obj_size+=4
+            temp_headnode+=size_x_int.to_bytes(2,byteorder="little")
+            temp_headnode+=size_y_int.to_bytes(2,byteorder="little")
+            temp_headnode+=layout_int.to_bytes(1,byteorder="little")
+            new_obj_size+=5
+            if write_version>3:
+                temp_headnode+=allowed_climates_int.to_bytes(2,byteorder="little")
+                new_obj_size+=2
+            if write_version>2:
+                temp_headnode+=enables_int.to_bytes(1,byteorder="little")
+                new_obj_size+=1
+            temp_headnode+=build_flag_int.to_bytes(1,byteorder="little")
+            new_obj_size+=1
+            temp_headnode+=build_chance_int.to_bytes(1,byteorder="little")
+            new_obj_size+=1
+            if write_version>1:
+                temp_headnode+=(date_to_byte(intro_y,intro_m))
+                temp_headnode+=(date_to_byte(retire_y,retire_m))
+                new_obj_size+=4
+            if write_version>4:
+                temp_headnode+=animation_time.to_bytes(2,byteorder="little")
+                new_obj_size+=2
+            if write_version>7:
+                temp_headnode+=capacity_int.to_bytes(2,byteorder="little")
+                new_obj_size+=2
+                temp_headnode+=maintenance_int.to_bytes(4,byteorder="little")
+                new_obj_size+=4
+                temp_headnode+=price_int.to_bytes(4,byteorder="little")
+                new_obj_size+=4
+            if write_version>6:
+                temp_headnode+=allow_underground_int.to_bytes(1,byteorder="little")
+                new_obj_size+=1
+            if write_version>9:
+                temp_headnode+=(date_to_byte(preservation_y,preservation_m))
+                new_obj_size+=2
+            new_node=obj_nchild
+            # new node writing
+            outfile.write(new_node.to_bytes(2,byteorder="little"))
+            outfile.write(new_obj_size.to_bytes(2,byteorder="little"))
+            outfile.write(temp_headnode)
+            copy_object(infile,outfile,obj_nchild,holdflag=0)
+            return True
 
+
+
+            
 
 
 
@@ -492,7 +809,7 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
     infile.close()
     outfile.close()
     if samefile_flag==1:
-        os.remane(infile_path,infile_path[:-4]+"_old.pak")
+        os.rename(infile_path,infile_path[:-4]+"_old.pak")
         os.rename(outfile_path,infile_path)
     if a:
         print_function("pak arranging is done!",where_show)
