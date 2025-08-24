@@ -25,7 +25,8 @@ The author assumes no responsibility for any damages resulting from the download
 ## release notes
 - 14.03.2024 ver.0 release
 - 20.03.2024 ver.0.1 correction of misprints
-- 27.04.2024 ver.1 arranging vehile paks' versions.  
+- 27.04.2024 ver.1 arranging vehile paks' versions.
+- 24.08.2025 ver.2 Add Building and Factory editing.  
 
 # vehicle_arranger 取扱説明書
 このプログラムはsimutransの乗り物アドオンのpakファイルを編集するプログラムです。
@@ -46,4 +47,5 @@ CC-BY 4.0
 ## リリースノート
 - 2024年3月14日 ver.0 リリース  
 - 2024年3月20日 ver.0.1 誤植の修正
-- 2024年4月27日 ver.1 pakファイルバージョン変更に対応  
+- 2024年4月27日 ver.1 pakファイルバージョン変更に対応
+- 2025年8月24日 ver.2 建物・産業アドオンに対応  
