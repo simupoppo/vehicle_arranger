@@ -55,7 +55,7 @@ def print_function(texts,where_show=0):
         print(texts+"\n")
 
 def ask_function(texts,answer,where_show=0,output_type=0):
-    print_function(texts,where_show)
+    print_function(texts+"(default:"+str(answer)+")",where_show)
     output=input_function(where_show=where_show)
     # output_type is int_value. output_type==0 means output must be str. output_type==1 means output must be int.
     if output == "":
@@ -95,8 +95,8 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
     def climates_to_int(input_list):
         return_int=0
         for i in range(len(climate_list)):
-            for j in range(input_list):
-                if climate_list[i]==input_list[j]:
+            for j in (input_list):
+                if climate_list[i]==j:
                     return_int+=2**i
         return return_int
     def climate_changing(input_int,where_show):
@@ -113,7 +113,7 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
             print_function("2.Add an Allowed Climate",where_show)
             print_function("x.Exit (Not Change)",where_show)
             choice=input_function(where_show=where_show)
-            if str(choice)==1:
+            if str(choice)=="1":
                 print_function("-------------------",where_show)
                 print_function("Which one do you want to remove? Select number.",where_show)
                 for i in range(len(temp_climate_list)):
@@ -124,7 +124,7 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
                     if str(remove_choice)==str(i): 
                         temp_climate_list.pop(i)
                         print_function("remove "+str(temp_climate_list[i]),where_show)
-            elif str(choice)==2:
+            elif str(choice)=="2":
                 print_function("-------------------",where_show)
                 print_function("Which one do you want to add? Select number.",where_show)
                 for i in range(len(climate_list)):
@@ -186,6 +186,19 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
                 a=vehicle_arranging(infile,outfile,obj_nchild,obj_size)
                 if not a:
                     break
+            elif obj_type == b"BUIL":
+                obj_size=int.from_bytes(obj_size_byte,byteorder="little")
+                if(holdflag!=1):
+                    outfile.write(obj_type)
+                else:
+                    bytes+=obj_type
+                bytes+=building_arranging(infile,outfile,obj_nchild,obj_size,holdflag)
+            elif obj_type == b"FACT":
+                obj_size=int.from_bytes(obj_size_byte,byteorder="little")
+                outfile.write(obj_type)
+                a=factory_arranging(infile,outfile,obj_nchild,obj_size)
+                if not a:
+                    break
             else:
                 if holdflag!=1:
                     outfile.write(obj_type)
@@ -241,7 +254,7 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
         print_function("  2.Remove restriction",where_show)
         print_function("  3.Add new connect permition",where_show)
         print_function("  4.Remove selected connect permition",where_show)
-        print_function("  x.Exit")
+        print_function("  x.Exit",where_show)
         choice=input_function(where_show=where_show)
         if choice =="1":
             connecting_list=Remove_None(connecting_list)
@@ -269,7 +282,7 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
         else:
             print_function("  wrong input")
             return connecting_changing(connecting_list,l_or_r)
-    def read_xref(infile):
+    def read_xref(infile,type=b"VHCL"):
         xref=infile.read(4)
         xref_nchild=infile.read(2)
         xref_size_byte=infile.read(2)
@@ -278,17 +291,43 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
         cflag=infile.read(1)
         output=infile.read(xref_size-6)
         infile.read(1)
-        if xref==b"XREF" and xref_nchild==b"\x00\x00" and VHCL==b"VHCL" and cflag==b"\x00":
+        if xref==b"XREF" and xref_nchild==b"\x00\x00" and VHCL==type and (cflag==b"\x00"or cflag==b"\x01"):
             return output.decode("utf-8")
-    def write_xref(outfile,text):
-        outfile.write(b"XREF")
-        outfile.write(b"\x00\x00")#must be a child
+    def write_xref(outfile,text,type=b"VHCL",holdflag=0,fatal_flag=0):
+        write_txt=b""
+        write_txt+=(b"XREF")
+        write_txt+=(b"\x00\x00")#must be a child
         size_int=4+1+len(text)+1
-        outfile.write(size_int.to_bytes(2,byteorder="little"))
-        outfile.write(b"VHCL")
-        outfile.write(b"\x00")#Fatal-Flag
-        outfile.write(text.encode("utf-8"))
-        outfile.write(b"\x00")
+        write_txt+=(size_int.to_bytes(2,byteorder="little"))
+        write_txt+=(type)
+        write_txt+=(fatal_flag.to_bytes(1,byteorder="little"))#Fatal-Flag
+        write_txt+=(text.encode("utf-8"))
+        write_txt+=(b"\x00")
+        if(holdflag!=1):
+            outfile.write(write_txt)
+        else:
+            return write_txt
+    def read_text(infile):
+        text=infile.read(4)
+        text_nchild=infile.read(2)
+        text_size_byte=infile.read(2)
+        text_size=int.from_bytes(text_size_byte,byteorder="little")
+        output=infile.read(text_size-1)
+        infile.read(1)
+        if text==b"TEXT" and text_nchild==b"\x00\x00":
+            return output.decode("utf-8")
+    def write_text(outfile,text,holdflag=0):
+        write_txt=b""
+        write_txt+=(b"TEXT")
+        write_txt+=(b"\x00\x00")#must be a child
+        size_int=len(text)+1
+        write_txt+=(size_int.to_bytes(2,byteorder="little"))
+        write_txt+=(text.encode("utf-8"))
+        write_txt+=(b"\x00")
+        if(holdflag!=1):
+            outfile.write(write_txt)
+        else:
+            return write_txt
     def vehicle_arranging(infile,outfile,obj_nchild,obj_size):
         temp_headnode=b""
         temp_obj_size=obj_size
@@ -303,137 +342,102 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
             version=0
         # pakfile version changing
         if version>0:
-            ask_version=ask_function("Do you want to change pak version to 0x800B? yes=1,no=other","1",where_show,0)
+            ask_version=ask_function("Do you want to change pak version to 0x800C? yes=1,no=other","1",where_show,0)
         if ask_version=="1":
             print_function("change version",where_show)
-            new_version=0x800b
+            new_version=0x800c
             write_version=new_version&0x7FFF
         else:
             print_function("NOT change version",where_show)
             new_version=version|0x8000
             write_version=version
-        temp_headnode+=new_version.to_bytes(2,byteorder="little")
         temp_obj_size-=2
-        new_obj_size+=2
-        if version>0:
-            # cost
-            price_byte32 = infile.read(4)
-            price = int.from_bytes(price_byte32,byteorder="little")
-            price = ask_function("cost = "+str(price),price,where_show,1)
-            temp_headnode+=(price.to_bytes(4,byteorder="little"))
-            temp_obj_size-=4
-            new_obj_size+=4
-            # capacity
-            capacity_byte = infile.read(2)
-            price = int.from_bytes(capacity_byte,byteorder="little")
-            price = ask_function("capacity = "+str(price),price,where_show,1)
-            temp_headnode+=(price.to_bytes(2,byteorder="little"))
-            temp_obj_size-=2
-            new_obj_size+=2
-            # loading_time
-            if version>8:
-                # depends on the version
-                l_time_byte = infile.read(2)
-                temp_obj_size-=2
-                l_time = int.from_bytes(l_time_byte,byteorder="little")
-            else:
-                l_time = 1000
-            if write_version>8:
-                l_time = ask_function("loading time = "+str(l_time),l_time,where_show,1)
-                temp_headnode+=(l_time.to_bytes(2,byteorder="little"))
-                new_obj_size+=2
-            # speed
-            speed_byte = infile.read(2)
-            speed_int = int.from_bytes(speed_byte,byteorder="little")
-            speed_int = ask_function("top speed = "+str(speed_int),speed_int,where_show,1)
-            temp_headnode+=(speed_int.to_bytes(2,byteorder="little"))
-            temp_obj_size-=2
-            new_obj_size+=2
-            # weight
-            if version>9:
-                weight_byte32 = infile.read(4)
-                temp_obj_size-=4
-                weight = int.from_bytes(weight_byte32,byteorder="little")
-            else:
-                weight_byte32 = infile.read(2)
-                weight = int.from_bytes(weight_byte32,byteorder="little")
-                if write_version>9:
-                    weight = weight*1000
-                temp_obj_size-=2
-            weight = ask_function("weight = "+str(weight),weight,where_show,1)
-            if write_version>9:
-                temp_headnode+=(weight.to_bytes(4,byteorder="little"))
-                new_obj_size+=4
-            else:
-                temp_headnode+=(weight.to_bytes(2,byteorder="little"))
-                new_obj_size+=2
-            # axle_load
-            if version>8:
-                axle_byte=infile.read(2)
-                axle_int=int.from_bytes(axle_byte,byteorder="little")
-                temp_obj_size-=2
-            else:
-                axle_int=0
-            if write_version>8:
-                axle_int=ask_function("axle_load="+str(axle_int),axle_int,where_show,1)
-                temp_headnode+=(axle_int.to_bytes(2,byteorder="little"))
-                new_obj_size+=2  
-            # power
-            if version>5:
-                power_byte32 = infile.read(4)
-                temp_obj_size-=4
-            else:
-                power_byte32 = infile.read(2)
-                temp_obj_size-=2
-            power = int.from_bytes(power_byte32,byteorder="little")
-            power = ask_function("power = "+str(power)+"kW",power,where_show,1)
-            if write_version>5:
-                temp_headnode+=(power.to_bytes(4,byteorder="little"))
-                new_obj_size+=4
-            else:
-                temp_headnode+=(power.to_bytes(2,byteorder="little"))
-                new_obj_size+=2
-            # running cost
-            rcost_byte = infile.read(2)
-            rcost = int.from_bytes(rcost_byte,byteorder="little")
-            rcost = ask_function("running cost = "+str(rcost),rcost,where_show,1)
-            temp_headnode+=(rcost.to_bytes(2,byteorder="little"))
-            temp_obj_size-=2
-            new_obj_size+=2
-            # monthly maintenance
-            # depends on the version
-            if version >8:
-                if version>10:
-                    mcost_byte32 = infile.read(4)
-                    temp_obj_size-=4
-                else:
-                    mcost_byte32 = infile.read(2)
-                    temp_obj_size-=2
-                mcost = int.from_bytes(mcost_byte32,byteorder="little")
-            else:
-                mcost = 0
-            if write_version>8:
-                mcost = ask_function("mcost = "+str(mcost),mcost,where_show,1)
-                if write_version>10:
-                    temp_headnode+=(mcost.to_bytes(4,byteorder="little"))
-                    new_obj_size+=4
-                else:
-                    temp_headnode+=(mcost.to_bytes(2,byteorder="little"))
-                    new_obj_size+=2
-        else:
+        if version<=0:
+            # we cannot treat too old version
             print_function("Too old",where_show)
             return False
+        # cost
+        if version < 12:
+            price_byte32 = infile.read(4)
+            price = int.from_bytes(price_byte32,byteorder="little")
+            temp_obj_size-=4
+        else:
+            price_byte64 = infile.read(8)
+            price = int.from_bytes(price_byte64,byteorder="little")
+            temp_obj_size-=8            
+        # capacity
+        capacity_byte = infile.read(2)
+        capacity = int.from_bytes(capacity_byte,byteorder="little")
+        temp_obj_size-=2
+        # loading_time
+        if version>8:
+            # depends on the version
+            l_time_byte = infile.read(2)
+            temp_obj_size-=2
+            l_time = int.from_bytes(l_time_byte,byteorder="little")
+        else:
+            l_time = 1000
+        # speed
+        speed_byte = infile.read(2)
+        speed_int = int.from_bytes(speed_byte,byteorder="little")
+        temp_obj_size-=2
+        # weight
+        if version>9:
+            weight_byte32 = infile.read(4)
+            temp_obj_size-=4
+            weight = int.from_bytes(weight_byte32,byteorder="little")
+        else:
+            weight_byte32 = infile.read(2)
+            weight = int.from_bytes(weight_byte32,byteorder="little")
+            if write_version>9:
+                weight = weight*1000
+            temp_obj_size-=2
+        # axle_load
+        if version>8:
+            axle_byte=infile.read(2)
+            axle_int=int.from_bytes(axle_byte,byteorder="little")
+            temp_obj_size-=2
+        else:
+            axle_int=0
+        # power
+        if version>5:
+            power_byte32 = infile.read(4)
+            temp_obj_size-=4
+        else:
+            power_byte32 = infile.read(2)
+            temp_obj_size-=2
+        power = int.from_bytes(power_byte32,byteorder="little")
+        # running cost
+        if version<12:
+            rcost_byte = infile.read(2)
+            rcost = int.from_bytes(rcost_byte,byteorder="little")
+            temp_obj_size-=2
+        else:
+            rcost_byte = infile.read(8)
+            rcost = int.from_bytes(rcost_byte,byteorder="little")
+            temp_obj_size-=8
+        # monthly maintenance
+        # depends on the version
+        if version >8:
+            if version > 11:
+                mcost_byte32 = infile.read(8)
+                temp_obj_size-=8
+            elif version>10:
+                mcost_byte32 = infile.read(4)
+                temp_obj_size-=4
+            else:
+                mcost_byte32 = infile.read(2)
+                temp_obj_size-=2
+            mcost = int.from_bytes(mcost_byte32,byteorder="little")
+        else:
+            mcost = 0
         # Intro year
         intro_byte = infile.read(2)
+        temp_obj_size-=2
         if version<5:
             intro_y,intro_m = byte_to_date(intro_byte,version=0)
         else:
             intro_y,intro_m = byte_to_date(intro_byte)
-        intro_y = ask_function("intro_year :"+str(intro_y),intro_y,where_show,1)
-        intro_m = ask_function("intro_month:"+str(intro_m),intro_m,where_show,1)
-        temp_headnode+=(date_to_byte(intro_y,intro_m))
-        temp_obj_size-=2
-        new_obj_size+=2
         # Retire year
         if version>2:
             retire_byte = infile.read(2)
@@ -444,14 +448,6 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
                 retire_y,retire_m = byte_to_date(retire_byte)
         else:
             retire_y,retire_m=2999,1
-        if write_version>2:
-            retire_y = ask_function("retire_year :"+str(retire_y),retire_y,where_show,1)
-            retire_m = ask_function("retire_month:"+str(retire_m),retire_m,where_show,1)
-            if version<5:
-                temp_headnode+=(date_to_byte(retire_y,retire_m,version=0))
-            else:
-                temp_headnode+=(date_to_byte(retire_y,retire_m))
-            new_obj_size+=2
         # Engine gear
         if version>5:
             gear_byte=infile.read(2)
@@ -460,24 +456,15 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
             gear_byte=infile.read(1)
             temp_obj_size-=1
         gear_int=int.from_bytes(gear_byte,byteorder="little")
-        if write_version>5:
-            temp_headnode+=(gear_int.to_bytes(2,byteorder="little"))
-            new_obj_size+=2
-        else:
-            temp_headnode+=(gear_int.to_bytes(1,byteorder="little"))
-            new_obj_size+=1
         # waytype
-        temp_headnode+=copy_node(infile,1)
+        waytype_node+=copy_node(infile,1)
         temp_obj_size-=1
-        new_obj_size+=1
         # sound id
-        temp_headnode+=copy_node(infile,1)
+        soundid_node+=copy_node(infile,1)
         temp_obj_size-=1
-        new_obj_size+=1
         # engine type
-        temp_headnode+=copy_node(infile,1)
+        enginetype_node+=copy_node(infile,1)
         temp_obj_size-=1
-        new_obj_size+=1
         # length
         if version>6:
             vlength_byte=infile.read(1)
@@ -485,22 +472,16 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
             temp_obj_size-=1
         else:
             vlength_int=8
-        vlength_int = ask_function("mcost = "+str(vlength_int),vlength_int,where_show,1)
-        if write_version>6:
-            temp_headnode+=(vlength_int.to_bytes(1,byteorder="little"))
-            new_obj_size+=1
 
         
         # leader reading
         leader_byte=infile.read(1)
         leader=int.from_bytes(leader_byte,byteorder="little")
         temp_obj_size-=1
-        new_obj_size+=1
         # trailer reading
         trailer_byte=infile.read(1)
         trailer=int.from_bytes(trailer_byte,byteorder="little")
         temp_obj_size-=1
-        new_obj_size+=1
         # freight image number (only for version updating)
         others_byte=b""
         if version<8 and write_version>7:
@@ -509,9 +490,12 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
             new_obj_size+=1
         # other_params_reading
         others_byte+=infile.read(temp_obj_size)
-        others_byte+=copy_object(infile,outfile,6,holdflag=1,bytes=b"",need_return=1)
         new_obj_size+=temp_obj_size
         temp_obj_size=0
+        # get name
+        name = read_text(infile)
+        # other bytes: copyright, images etc.
+        other_object += copy_object(infile,outfile,5,holdflag=1,bytes=b"",need_return=1)
         # leader and trailer reading
         temp_leaders=[]
         temp_trailers=[]
@@ -519,9 +503,113 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
             temp_leaders.append(read_xref(infile))
         for i in range(trailer):
             temp_trailers.append(read_xref(infile))
+        # now ask to write
+        # show and ask name change
+        name = ask_function("Name = "+str(name),name,where_show,0)
+        # version
+        temp_headnode+=new_version.to_bytes(2,byteorder="little")
+        new_obj_size+=2
+        # cost
+        price = ask_function("cost = "+str(price),price,where_show,1)
+        if(write_version<12):
+            temp_headnode+=(price.to_bytes(4,byteorder="little"))
+            new_obj_size+=4
+        else:
+            temp_headnode+=(price.to_bytes(8,byteorder="little"))
+            new_obj_size+=8
+        # capacity
+        capacity = ask_function("capacity = "+str(capacity),capacity,where_show,1)
+        temp_headnode+=(capacity.to_bytes(2,byteorder="little"))
+        new_obj_size+=2
+        # loading time
+        if write_version>8:
+            l_time = ask_function("loading time = "+str(l_time),l_time,where_show,1)
+            temp_headnode+=(l_time.to_bytes(2,byteorder="little"))
+            new_obj_size+=2
+        # speed
+        speed_int = ask_function("top speed = "+str(speed_int),speed_int,where_show,1)
+        temp_headnode+=(speed_int.to_bytes(2,byteorder="little"))
+        new_obj_size+=2
+        # weight
+        weight = ask_function("weight = "+str(weight),weight,where_show,1)
+        if write_version>9:
+            temp_headnode+=(weight.to_bytes(4,byteorder="little"))
+            new_obj_size+=4
+        else:
+            temp_headnode+=(weight.to_bytes(2,byteorder="little"))
+            new_obj_size+=2
+        # axle_load
+        if write_version>8:
+            axle_int=ask_function("axle_load="+str(axle_int),axle_int,where_show,1)
+            temp_headnode+=(axle_int.to_bytes(2,byteorder="little"))
+            new_obj_size+=2 
+        # power
+        power = ask_function("power = "+str(power)+"kW",power,where_show,1)
+        if write_version>5:
+            temp_headnode+=(power.to_bytes(4,byteorder="little"))
+            new_obj_size+=4
+        else:
+            temp_headnode+=(power.to_bytes(2,byteorder="little"))
+            new_obj_size+=2
+        # runnin const
+        rcost = ask_function("running cost = "+str(rcost),rcost,where_show,1)
+        if write_version<12:
+            temp_headnode+=(rcost.to_bytes(2,byteorder="little"))
+            new_obj_size+=2
+        else:
+            temp_headnode+=(rcost.to_bytes(8,byteorder="little"))
+            new_obj_size+=8
+        # monthly maintainance
+        if write_version>8:
+            mcost = ask_function("mcost = "+str(mcost),mcost,where_show,1)
+            if write_version>10:
+                temp_headnode+=(mcost.to_bytes(4,byteorder="little"))
+                new_obj_size+=4
+            else:
+                temp_headnode+=(mcost.to_bytes(2,byteorder="little"))
+                new_obj_size+=2
+        # intro year
+        intro_y = ask_function("intro_year :"+str(intro_y),intro_y,where_show,1)
+        intro_m = ask_function("intro_month:"+str(intro_m),intro_m,where_show,1)
+        if write_version<5:
+            temp_headnode+=(date_to_byte(intro_y,intro_m,version=0))
+        else:
+            temp_headnode+=(date_to_byte(intro_y,intro_m))
+        new_obj_size+=2
+        # engine gear
+        if write_version>5:
+            temp_headnode+=(gear_int.to_bytes(2,byteorder="little"))
+            new_obj_size+=2
+        else:
+            temp_headnode+=(gear_int.to_bytes(1,byteorder="little"))
+            new_obj_size+=1
+        # retire year
+        if write_version>2:
+            retire_y = ask_function("retire_year :"+str(retire_y),retire_y,where_show,1)
+            retire_m = ask_function("retire_month:"+str(retire_m),retire_m,where_show,1)
+            if write_version<5:
+                temp_headnode+=(date_to_byte(retire_y,retire_m,version=0))
+            else:
+                temp_headnode+=(date_to_byte(retire_y,retire_m))
+            new_obj_size+=2
+        # waytype_node
+        temp_headnode+=waytype_node
+        new_obj_size+=1
+        # sound id
+        temp_headnode+=soundid_node
+        new_obj_size+=1
+        # engine type
+        temp_headnode+=enginetype_node
+        # length
+        vlength_int = ask_function("mcost = "+str(vlength_int),vlength_int,where_show,1)
+        if write_version>6:
+            temp_headnode+=(vlength_int.to_bytes(1,byteorder="little"))
+            new_obj_size+=1
         # leader and trailer changing
         result_leader_list=connecting_changing(temp_leaders,"leader")
+        new_obj_size+=1
         result_trailer_list=connecting_changing(temp_trailers,l_or_r= "trailer")
+        new_obj_size+=1
         new_node=obj_nchild-leader-trailer+len(result_leader_list)+len(result_trailer_list)
         # new node writing
         outfile.write(new_node.to_bytes(2,byteorder="little"))
@@ -530,6 +618,8 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
         outfile.write(len(result_leader_list).to_bytes(1,byteorder="little"))
         outfile.write(len(result_trailer_list).to_bytes(1,byteorder="little"))
         outfile.write(others_byte)
+        write_text(outfile,name)
+        outfile.write(other_object)
         # write new leader list
         for i in range(len(result_leader_list)):
             write_xref(outfile,result_leader_list[i])
@@ -540,8 +630,51 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
         if ANOTHERS>0:
             copy_object(infile,outfile,ANOTHERS,holdflag=0)
         return True
+    def change_enable_goodstype(input_int,where_show):
+        continue_flag=1
+        return_int=input_int
+        enable_goodstype_list=["passagiere","post","ware"]
+        while continue_flag==1:
+            print_function("Enable goods list:",where_show)
+            for i in range(len(enable_goodstype_list)):
+                if((return_int>>(i))&1>0):
+                    print_function(str(i)+":"+str(enable_goodstype_list[i]),where_show)
+            print_function("-------------------",where_show)
+            print_function("Do you want to change allowed climate? Please select changing way.",where_show)
+            print_function("1.Remove an Allowed Climate",where_show)
+            print_function("2.Add an Allowed Climate",where_show)
+            print_function("x.Exit (Not Change)",where_show)
+            choice=input_function(where_show=where_show)
+            if str(choice)=="1":
+                print_function("-------------------",where_show)
+                print_function("Which one do you want to remove? Select number.",where_show)
+                for i in range(len(enable_goodstype_list)):
+                    print_function(str(i)+":"+str(enable_goodstype_list[i]),where_show)
+                remove_choice=input_function(where_show=where_show)
+                try:
+                    remove_choice_int=int(remove_choice)
+                    if( 1<<(remove_choice_int)&return_int>0 ):
+                        return_int-(1<<(remove_choice_int))
+                except:
+                    print_function("invalid entry",where_show)                    
+            elif str(choice)=="2":
+                print_function("-------------------",where_show)
+                print_function("Which one do you want to remove? Select number.",where_show)
+                for i in range(len(enable_goodstype_list)):
+                    print_function(str(i)+":"+str(enable_goodstype_list[i]),where_show)
+                remove_choice=input_function(where_show=where_show)
+                try:
+                    remove_choice_int=int(remove_choice)
+                    if( (0<=remove_choice_int<3) and 1<<(remove_choice_int)&return_int==0 ):
+                        return_int+(1<<(remove_choice_int))
+                except:
+                    print_function("invalid entry",where_show)                    
+            else:
+                print_function("End changing allowed climate.",where_show)
+                continue_flag=0
+        return return_int
 
-    def building_arranging(infile,outfile,obj_nchild,obj_size):
+    def building_arranging(infile,outfile,obj_nchild,obj_size,holdflags=0):
         btype_tuple=(
             "unknown",#0
             "attraction_city",#1
@@ -551,21 +684,21 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
             "townhall",#5
             "others",#6
             "headquarters",#7
-            "bahnhof",#8,old_building_types
-            "bushalt",#9,old_building_types
-            "ladebucht",#10,old_building_types
+            "bahnhof",#8,old_building_types : generic_stop, waytype=track
+            "bushalt",#9,old_building_types : generic_stop, waytype=road
+            "ladebucht",#10,old_building_types : generic_stop, waytype=road
             "dock",#11
-            "binnenhafen",#12,old_building_types
-            "airport",#13,old_building_types
-            "monorailstop",#14,old_building_types
+            "binnenhafen",#12,old_building_types : generic_stop, waytype=water
+            "airport",#13,old_building_types : generic_stop, waytype=air
+            "monorailstop",#14,old_building_types : generic_stop, waytype = monorail
             "",#15 is empty
-            "bahnhof_geb",#16,old_building_types
-            "bushalt_geb",#17,old_building_types
-            "ladebucht_geb",#18,old_building_types
-            "hagen_geb",#19,old_building_types
-            "binnenhafen_geb",#20,old_building_types
-            "airport_geb",#21,old_building_types
-            "monorail_geb",#22,old_building_types
+            "bahnhof_geb",#16,old_building_types : generic_extension, waytype=track
+            "bushalt_geb",#17,old_building_types : generic_extension, waytype=road
+            "ladebucht_geb",#18,old_building_types : generic_extension, waytype=road
+            "hagen_geb",#19,old_building_types : generic_extension, waytype=water
+            "binnenhafen_geb",#20,old_building_types : generic_extension, waytype = water
+            "airport_geb",#21,old_building_types : generic_extension, waytype=air
+            "monorail_geb",#22,old_building_types : generic_extension, waytype = monorail
             "",#23 is empty
             "",#24 is empty
             "",#25 is empty
@@ -573,9 +706,9 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
             "",#27 is empty
             "",#28 is empty
             "",#29 is empty
-            "wartehalle",#30,old_building_types
-            "mail",#31,old_building_types
-            "lagerhalle",#32,old_building_types
+            "wartehalle",#30,old_building_types : generic_extension, waytype = none
+            "mail",#31,old_building_types : generic_extension, waytype = none
+            "lagerhalle",#32,old_building_types : generic_extension, waytype = none
             "depot",#33
             "generic_stop",#34
             "generic_extension",#35
@@ -605,10 +738,10 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
             version=0
         # pakfile version changing
         if version>0:
-            ask_version=ask_function("Do you want to change pak version to 0x800A? yes=1,no=other","1",where_show,0)
+            ask_version=ask_function("Do you want to change pak version to 0x800B? yes=1,no=other","1",where_show,0)
         if ask_version=="1":
             print_function("change version",where_show)
-            new_version=0x800a
+            new_version=0x800b
             write_version=new_version&0x7FFF
         else:
             print_function("NOT change version",where_show)
@@ -683,12 +816,20 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
                 capacity_byte=infile.read(2)
                 temp_obj_size-=2
                 capacity_int=int.from_bytes(capacity_byte,byteorder="little")
-                maintenance_byte=infile.read(4)
-                temp_obj_size-=4
-                maintenance_int=int.from_bytes(maintenance_byte,byteorder="little")
-                price_byte=infile.read(4)
-                temp_obj_size-=4
-                price_int=int.from_bytes(price_byte,byteorder="little")
+                if version<11:
+                    maintenance_byte=infile.read(4)
+                    temp_obj_size-=4
+                    maintenance_int=int.from_bytes(maintenance_byte,byteorder="little")
+                    price_byte=infile.read(4)
+                    temp_obj_size-=4
+                    price_int=int.from_bytes(price_byte,byteorder="little")
+                else:
+                    maintenance_byte=infile.read(8)
+                    temp_obj_size-=8
+                    maintenance_int=int.from_bytes(maintenance_byte,byteorder="little")
+                    price_byte=infile.read(8)
+                    temp_obj_size-=8
+                    price_int=int.from_bytes(price_byte,byteorder="little")
             else:
                 capacity_int=level_int*32
                 maintenance_int=level_int*100
@@ -707,26 +848,117 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
                 preservation_y,preservation_m=byte_to_date(preservation_ym_byte)
             else:
                 preservation_y=retire_y
-                preservation_m=retire_m                
+                preservation_m=retire_m 
+            # get building name
+            name = read_text(infile)               
             #
             # building extra data
             #
             # building
-            #      btype     ,    extra     ,   level   ,   enables
-            #   res/com/ind  , cluster data ,   level   ,      -
-            #       cur      , if 1 -> city ,passengers ,      -
-            #       cur      , if 0 -> land ,passengers ,      -
-            #       mon      ,      -       ,passengers ,      -
-            #       tow      ,  build-time  ,passengers ,      -
-            #       hq       ,  hq-level    ,passengers ,      -
-            #   dock"habour" , water-waytype,   level   ,      -
-            # flat-dock"dock", water-waytype,   level   ,      -
-            #     factory    ,      -       ,   level   ,     |=4
-            # stop/extension ,    waytype   ,   level   ,|=1:pax/|=2:post/|=4:ware
-            #      depot     ,    waytype   ,     -     ,      -
+            #     (num)  btype     ,    extra     ,   level   ,   enables
+            # 37,38,39res/com/ind  , cluster data ,   level   ,      -
+            #       1cur(city)     ,  build_time  ,passengers ,      -
+            #       2cur(land)     ,      -       ,passengers ,      -
+            #       3mon           ,      -       ,passengers ,      -
+            #       5tow           ,  build-time  ,passengers ,      -
+            #       7hq            ,  hq-level    ,passengers ,      -
+            #  11dock"habour"      , water-waytype,   level   ,|=1:pax/|=2:post/|=4:ware
+            # 36flat-dock"dock"    , water-waytype,   level   ,|=1:pax/|=2:post/|=4:ware
+            #     4factory         ,      -       ,   level   ,     |=4
+            # 34,35stop/extension  ,    waytype   ,   level   ,|=1:pax/|=2:post/|=4:ware
+            #      33depot         ,    waytype   ,     -     ,      -
             #
             #
             # Arranging addons
+            #
+            # name
+            name = ask_function("Name = "+str(name),name,where_show,0)
+            # building type
+            # no change but version difference:
+            if version < 9 and write_version >= 9:
+                if(old_btype_int<3):
+                    btype_int = btype_tuple.index("city_res") + old_btype_int
+            print_function("building type is "+btype_tuple[btype_int],where_show)
+            # level
+            waytype_tpl = {
+                0: "None",
+                1: "road_wt",
+                2: "track_wt",
+                3: "water_wt",
+                5: "monorail_wt",
+                6: "maglev_wt",
+                7: "tram_wt",
+                8: "narrowgauge_wt",
+                16: "air_wt"
+            }
+            level_meaning = "level"
+            Extra_meaning = ""
+            if( btype_int==btype_tuple.index("attraction_city") or btype_int==btype_tuple.index("attraction_land") or btype_int==btype_tuple.index("monument") or btype_int==btype_tuple.index("townhall") or btype_int==btype_tuple.index("headquarters") ):
+                level_meaning = "passangers level"
+            if( btype_int==btype_tuple.index("attraction_city") or btype_int==btype_tuple.index("townhall") ):
+                Extra_meaning = "build-time (the city population which this building will be constructed)"
+            if( btype_int==btype_tuple.index("headquarters") ):
+                Extra_meaning = "headquarter level"
+            if( btype_int==btype_tuple.index("generic_stop") or btype_int==btype_tuple.index("generic_extension") or btype_int==btype_tuple.index("depot") ):
+                Extra_meaning = "Waytype"
+            # if( btype_int==btype_tuple.index("ciry_res") or btype_int==btype_tuple.index("city_com") or btype_int==btype_tuple.index("city_ind") ):
+            #    Extra_meaning = "Cluster_data"
+            level_int = ask_function(level_meaning,level_int,where_show=where_show,output_type=1)
+            #extra data
+            if( len(Extra_meaning)>0 ):
+                if( Extra_meaning!="Waytype" ):
+                    extra_data = ask_function(Extra_meaning,extra_data,where_show=where_show,output_type=1)
+                else:
+                    print_function(extra_data+":"+waytype_tpl[extra_data],where_show=where_show)
+                    for i in range(17):
+                        if(waytype_tpl.get(i)):
+                            print_function(str(i)+" : "+waytype_tpl[i])
+                    new_waytype = input_function(where_show=where_show)
+                    if( waytype_tpl.get(new_waytype) ):
+                        print_function("new waytype is "+waytype_tpl[i])
+                        extra_data = new_waytype
+                    else:
+                        print_function("invalid input: waytype is not changed: "+waytype_tpl[extra_data])
+            #climate
+            if( write_version>3 ):
+                allowed_climates_int = climate_changing(allowed_climates_int,where_show)
+            #enable(for station)
+            if( write_version>2 ):
+                if( btype_tuple.index("bahnhof")<=btype_int<=btype_tuple.index("flat_dock") and btype_int!=btype_tuple.index("depot") ):
+                    enables_int = change_enable_goodstype(enables_int,where_show)
+            #flag
+            no_info_int = build_chance_int&1
+            #no_info_int = ask_function("no info? 1->true, 0->false",build_flag_int&1,where_show,1)
+            #if( no_info_int != 0 and no_info_int != 1 ):
+            #    print_function("invalid input, no info flag is set as "+str(build_flag_int&1),where_show)
+            no_construction_int = ask_function("no construction? 1->true, 0->false",(build_flag_int&2)>>1,where_show,1)
+            if( no_construction_int != 0 and no_construction_int != 1 ):
+                print_function("invalid input, no construction flag is set as "+str((build_flag_int&2)>>1),where_show)
+            needs_ground_int = ask_function("neeeds ground? 1->true, 0->false",(build_flag_int&4)>>2,where_show,1)
+            if( needs_ground_int != 0 and needs_ground_int != 1 ):
+                print_function("invalid input, needs ground flag is set as "+str((build_flag_int&4)>>2),where_show)
+            build_flag_int = no_info_int + (no_construction_int<<1) + (needs_ground_int<<2)
+            #chance
+            # build_chance_int=ask_function("build change ")
+            # intro and retire year
+            if ( write_version>1 ):
+                intro_y = ask_function("intro_year :"+str(intro_y),intro_y,where_show,1)
+                intro_m = ask_function("intro_month:"+str(intro_m),intro_m,where_show,1)
+                retire_y = ask_function("retire_year :"+str(retire_y),retire_y,where_show,1)
+                retire_m = ask_function("retire_month:"+str(retire_m),retire_m,where_show,1)
+            # capacity
+            if( write_version>7 and btype_tuple.index("bahnhof")<=btype_int<=btype_tuple.index("flat_dock") and btype_int!=btype_tuple.index("depot") ):    
+                capacity_int=ask_function("capacity:",capacity_int,where_show,1)
+            # maintainance and price
+            if( write_version>7 ):
+                price_int=ask_function("price:",capacity_int,where_show,1)
+                maintenance_int=ask_function("maintenance cost:",capacity_int,where_show,1)
+            # preservation year
+            if ( write_version>9 ):
+                preservation_y = ask_function("preservation_year :"+str(preservation_y),preservation_y,where_show,1)
+                preservation_m = ask_function("preservation_month:"+str(preservation_m),preservation_m,where_show,1)
+
+
             #
             #
             #
@@ -763,10 +995,16 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
             if write_version>7:
                 temp_headnode+=capacity_int.to_bytes(2,byteorder="little")
                 new_obj_size+=2
-                temp_headnode+=maintenance_int.to_bytes(4,byteorder="little")
-                new_obj_size+=4
-                temp_headnode+=price_int.to_bytes(4,byteorder="little")
-                new_obj_size+=4
+                if write_version<11:
+                    temp_headnode+=maintenance_int.to_bytes(4,byteorder="little")
+                    new_obj_size+=4
+                    temp_headnode+=price_int.to_bytes(4,byteorder="little")
+                    new_obj_size+=4
+                else:
+                    temp_headnode+=maintenance_int.to_bytes(8,byteorder="little")
+                    new_obj_size+=8
+                    temp_headnode+=price_int.to_bytes(8,byteorder="little")
+                    new_obj_size+=8
             if write_version>6:
                 temp_headnode+=allow_underground_int.to_bytes(1,byteorder="little")
                 new_obj_size+=1
@@ -775,12 +1013,601 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
                 new_obj_size+=2
             new_node=obj_nchild
             # new node writing
-            outfile.write(new_node.to_bytes(2,byteorder="little"))
-            outfile.write(new_obj_size.to_bytes(2,byteorder="little"))
-            outfile.write(temp_headnode)
-            copy_object(infile,outfile,obj_nchild,holdflag=0)
-            return True
+            return_txt=b""
+            return_txt+=new_node.to_bytes(2,byteorder="little")
+            return_txt+=new_obj_size.to_bytes(2,byteorder="little")
+            return_txt+=temp_headnode
+            if(holdflags!=1):
+                outfile.write(return_txt)
+            return_txt+=write_text(outfile,name,holdflags)
+            return_txt+=copy_object(infile,outfile,obj_nchild-1,holdflag=holdflags)
+            if(holdflags!=1):
+                return True
+            else:
+                return return_txt
+    def read_factory_supplier(infile):
+        # this is only for return information
+        obj_byte = infile.read(4)
+        nchild_byte = infile.read(2)
+        nchild = int.from_bytes(nchild_byte,byteorder="little")
+        size_node = infile.read(2)
+        size = int.from_bytes(size_node,byteorder="little")
+        version_byte = infile.read(2)
+        size -= 2
+        version = int.from_bytes(version_byte,byteorder="little")
+        # since this object do not have version: it means capacity
+        capacity = version
+        supplier_count_byte = infile.read(2)
+        size-=2
+        supplier_count = int.from_bytes(supplier_count_byte,byteorder="little")
+        consumption_byte = infile.read(2)
+        size-=2
+        consumption = int.from_bytes(consumption_byte,byteorder="little")
+        dummy_byte = infile.read(2) #0x00
+        size-=2
+        if size==0 and nchild==1:
+            #read head node completely
+            name = read_xref(infile,type = b"GOOD") 
+        # return value
+        return [name,capacity,supplier_count,consumption] 
+    def write_factory_supplier(outfile,sup_info,holdflag=0):
+        write_text=b""
+        write_text+=b"FSUP"
+        nchild=1
+        size=8
+        write_text+=nchild.to_bytes(2,byteorder="little")
+        write_text+=size.to_bytes(2,byteorder="little")
+        name = str(sup_info[0])
+        capacity = int(sup_info[1]) # capacity of the amount of this good storing
+        supplier_count = int(sup_info[2]) # the number of industry which are made by construction of this factory
+        consumption = int(sup_info[3]) # the rate of the goods we need to make 100% production 
+        version = capacity
+        write_text+=version.to_bytes(2,byteorder="little")
+        write_text+=supplier_count.to_bytes(2,byteorder="little")
+        write_text+=consumption.to_bytes(2,byteorder="little")
+        write_text+=b"\x00"
+        write_text+=b"\x00"
+        write_text+=write_xref(outfile,name,type=b"GOOD",holdflag=1,fatal_flag=1) # goods need fatal_flag
+        if holdflag==0:
+            outfile.write(write_text)
+        else:
+            return write_text
+    def read_factory_production(infile):
+        # this is only for return information
+        obj_byte = infile.read(4)
+        nchild_byte = infile.read(2)
+        nchild = int.from_bytes(nchild_byte,byteorder="little")
+        size_node = infile.read(2)
+        size = int.from_bytes(size_node,byteorder="little")
+        version_byte = infile.read(2)
+        size -= 2
+        version = int.from_bytes(version_byte,byteorder="little")
+        if(version&0x8000>0 and version&0x7FFF==1):
+            capacity_byte = infile.read(2)
+            size -= 2
+            capacity = int.from_bytes(capacity_byte,byteorder="little")
+            factor_count_byte = infile.read(2)
+            size-=2
+            factor = int.from_bytes(factor_count_byte,byteorder="little")
+        else:
+            capacity = version
+            factor = 256
+        if size==0 and nchild==1:
+            #read head node completely
+            name = read_xref(infile,type = b"GOOD") 
+        # return value
+        return [name,capacity,factor] 
+    def write_factory_production(outfile,pro_info,holdflag=0):
+        write_text=b""
+        write_text+=b"FPRO"
+        nchild=1
+        size=6
+        write_text+=nchild.to_bytes(2,byteorder="little")
+        write_text+=size.to_bytes(2,byteorder="little")
+        name = str(pro_info[0])
+        capacity = int(pro_info[1])
+        factor = int(pro_info[2])
+        version = 0x8001
+        write_text+=version.to_bytes(2,byteorder="little")
+        write_text+=capacity.to_bytes(2,byteorder="little")
+        write_text+=factor.to_bytes(2,byteorder="little")
+        write_text+=write_xref(outfile,name,type=b"GOOD",holdflag=1,fatal_flag=1) # goods need fatal_flag
+        if holdflag==0:
+            outfile.write(write_text)
+        else:
+            return write_text
+    def factor_to_ratio(invalue=256):
+        # invalue is integer 256 = 100%
+        return invalue*100//256
+    def ratio_to_factor(ratio=100):
+        # incalue is ratio[%]
+        return ratio*256//100
+    def change_goods_supplier(supplier_list,where_show):
+        print_function("Supplier list",where_show)
+        print_function("number\tname\tcapacity\tconnecting industry number\tconsumption rate",where_show)
+        for i in range(len(supplier_list)):
+            print_function(str(i)+"\t"+str(supplier_list[i][0])+"\t"+str(supplier_list[i][1])+"\t"+str(supplier_list[i][2])+"\t"+str(factor_to_ratio(supplier_list[i][3])))
+        print_function("How to change? Please choose and input number",where_show)
+        print_function("  1.Remove selected goods",where_show)
+        print_function("  2.Add goods",where_show)
+        print_function("  3.Edit capacity value",where_show)
+        print_function("  4.Edit the number of connecting industry",where_show)
+        print_function("  5.Edit consumption rate",where_show)
+        print_function("  x.Exit",where_show)
+        choice=input_function(where_show=where_show)
+        if choice == "x":
+            print_function("Supplier list changing done!",where_show)
+            return supplier_list
+        elif choice=="1" or choice=="3" or choice =="4" or choice == "5":
+            if choice == "1":
+                print_function("Which one do you want to remove? input the number:",where_show)
+            else:
+                print_function("Which one do you want to edit? input the number:",where_show)
+            edit_number_str = input_function(where_show=where_show)
+            try:
+                edit_number=int(edit_number_str)
+                if(0<=edit_number<len(supplier_list)):
+                    if(choice == "1"):
+                        del supplier_list[edit_number]
+                        return change_goods_supplier(supplier_list,where_show)
+                    else:
+                        print_function("please input new value:",where_show)
+                        new_value = int(input_function(where_show=where_show))
+                        edit_pointer = int(choice)-2
+                        if(edit_pointer == 3):
+                            new_value = ratio_to_factor(new_value)
+                        if new_value<0 or new_value > 0xFFFF:
+                            print_function("wrong input",where_show)
+                        else:
+                            supplier_list[edit_number][edit_pointer] = new_value
+                        return change_goods_supplier(supplier_list,where_show)
 
+                else:
+                    print_function("wrong input",where_show)
+                    return change_goods_supplier(supplier_list,where_show)
+            except:
+                print_function("wrong input",where_show)
+                return change_goods_supplier(supplier_list,where_show)
+        elif choice == "2":
+            print_function("which goods?",where_show)
+            temp_name=input_function(where_show=where_show)
+            temp_capacity=ask_function("Capacity:",1000,where_show=where_show,output_type=1)
+            temp_supplier_count=ask_function("the number of supplier:",1,where_show=where_show,output_type=1)
+            temp_factor=ask_function("the ratio of consumption [%]:",100,where_show=where_show,output_type=1)
+            temp_sup=[temp_name,temp_capacity,temp_supplier_count,ratio_to_factor(temp_factor)]
+            for i in range(len(temp_sup)-1):
+                # check values
+                if(temp_sup[i+1]<0 or temp_sup[i+1]>0xFFFF):
+                    print_function("wrong input",where_show)
+                    return change_goods_supplier(supplier_list,where_show)
+            supplier_list.add(temp_sup)
+            return change_goods_supplier(supplier_list,where_show)       
+        else:
+            print_function("wrong input",where_show)
+            return change_goods_supplier(supplier_list,where_show)
+    def change_goods_production(production_list,where_show):
+        print_function("production list",where_show)
+        print_function("number\tname\tcapacity\tproduction rate",where_show)
+        for i in range(len(production_list)):
+            print_function(str(i)+"\t"+str(production_list[i][0])+"\t"+str(production_list[i][1])+"\t"+str(factor_to_ratio(production_list[i][2])))
+        print_function("How to change? Please choose and input number",where_show)
+        print_function("  1.Remove selected goods",where_show)
+        print_function("  2.Add goods",where_show)
+        print_function("  3.Edit capacity value",where_show)
+        print_function("  4.Edit consumption rate",where_show)
+        print_function("  x.Exit",where_show)
+        choice=input_function(where_show=where_show)
+        if choice == "x":
+            print_function("production list changing done!",where_show)
+            return production_list
+        elif choice=="1" or choice=="3" or choice =="4":
+            if choice == "1":
+                print_function("Which one do you want to remove? input the number:",where_show)
+            else:
+                print_function("Which one do you want to edit? input the number:",where_show)
+            edit_number_str = input_function(where_show=where_show)
+            try:
+                edit_number=int(edit_number_str)
+                if(0<=edit_number<len(production_list)):
+                    if(choice == "1"):
+                        del production_list[edit_number]
+                        return change_goods_production(production_list,where_show)
+                    else:
+                        print_function("please input new value:",where_show)
+                        new_value = int(edit_number_str)
+                        edit_pointer = int(choice)-2
+                        if(edit_pointer == 2):
+                            new_value = ratio_to_factor(new_value)
+                        if new_value<0 or new_value > 0xFFFF:
+                            print_function("wrong input",where_show)
+                            return change_goods_production(production_list,where_show)
+                        else:
+                            production_list[edit_number][edit_pointer] = new_value
+
+                else:
+                    print_function("wrong input",where_show)
+                    return change_goods_production(production_list,where_show)
+            except:
+                print_function("wrong input",where_show)
+                return change_goods_production(production_list,where_show)
+        elif choice == "2":
+            print_function("Whats the name of the good",where_show)
+            temp_name=input_function(where_show=where_show)
+            temp_capacity=ask_function("Capacity:",1000,where_show=where_show,output_type=1)
+            temp_factor=ask_function("the ratio of production [%]:",100,where_show=where_show,output_type=1)
+            temp_sup=[temp_name,temp_capacity,ratio_to_factor(temp_factor)]
+            for i in range(len(temp_sup)-1):
+                # check values
+                if(temp_sup[i+1]<0 or temp_sup[i+1]>0xFFFF):
+                    print_function("wrong input",where_show)
+                    return change_goods_production(production_list,where_show)
+            production_list.add(temp_sup)
+            return change_goods_production(production_list,where_show)       
+        else:
+            print_function("wrong input",where_show)
+            return change_goods_production(production_list,where_show)
+    def change_placement_factory(input_int,where_show):
+        return_int=input_int
+        placement_list=["Land","Water","City","river","shore","forest"]
+        print_function("Enable placement:"+placement_list[return_int],where_show)
+        print_function("-------------------",where_show)
+        print_function("Do you want to change placement? Please select changing way.",where_show)
+        for i in range(len(placement_list)):
+            print_function("  "+str(i)+":"+placement_list[i],where_show)
+        print_function("  x:Exit (Not Change)",where_show)
+        choice=input_function(where_show=where_show)
+        try:
+            choice_value=int(choice)
+            if(0<=choice_value<len(placement_list)):
+                return_int = choice_value
+                print_function("new placement is "+placement_list[return_int],where_show)
+        except:
+            print_function("Not change placement:"+placement_list[return_int],where_show)
+        return return_int
+    def factory_arranging(infile,outfile,obj_nchild,obj_size):
+        temp_headnode=b""
+        temp_obj_size=obj_size
+        new_obj_size=0
+        # copy and arrange setting of vehicle
+        # version
+        version_byte=copy_node(infile,2)
+        version_int=int.from_bytes(version_byte,byteorder="little")
+        if version_int & 0x8000:
+            version=version_int&0x7FFF
+        else:
+            version=0
+        # pakfile version changing
+        if version>0:
+            ask_version=ask_function("Do you want to change pak version to 0x8005? yes=1,no=other","1",where_show,0)
+        if ask_version=="1":
+            print_function("change version",where_show)
+            new_version=0x8005
+            write_version=new_version&0x7FFF
+        else:
+            print_function("NOT change version",where_show)
+            new_version=version_int
+            write_version=version
+        temp_headnode+=new_version.to_bytes(2,byteorder="little")
+        temp_obj_size-=2
+        new_obj_size+=2  
+        if version<0:
+            return False
+        else:
+            #read
+            #placement
+            placement_byte = infile.read(2)
+            placement = int.from_bytes(placement_byte,byteorder="little")
+            temp_obj_size-=2
+            #productivity
+            productivity_byte = infile.read(2)
+            productivity = int.from_bytes(productivity_byte,byteorder="little")
+            temp_obj_size-=2
+            #range
+            range_byte = infile.read(2)
+            range_int =int.from_bytes(range_byte,byteorder="little")
+            temp_obj_size-=2
+            #distribution weight
+            distribution_byte = infile.read(2)
+            distribution_int = int.from_bytes(distribution_byte,byteorder="little")
+            temp_obj_size-=2
+            #color
+            color_byte = infile.read(1)
+            color_int = int.from_bytes(color_byte,byteorder="little")
+            temp_obj_size-=1
+            #fields(v>1)
+            fields_int=0
+            if(version>1):
+                fields_byte=infile.read(1)
+                fields_int=int.from_bytes(fields_byte,byteorder="little")
+                temp_obj_size-=1
+            #supplier count
+            supplier_count_byte=infile.read(2)
+            supplier_count = int.from_bytes(supplier_count_byte,byteorder="little")
+            temp_obj_size-=2
+            #product count
+            product_count_byte = infile.read(2)
+            product_count = int.from_bytes(product_count_byte,byteorder="little")
+            temp_obj_size-=2
+            #pax level
+            pax_level_byte=infile.read(2)
+            pax_level = int.from_bytes(pax_level_byte,byteorder="little")
+            temp_obj_size-=2
+            #expand_probability(v>2)
+            expand_probability = 0
+            if(version>2):
+                expand_probability_byte = infile.read(2)
+                expand_probability = int.from_bytes(expand_probability_byte,byteorder="little")
+                temp_obj_size-=2
+            #expand_minimum(v>2)
+            expand_minimum = 0
+            if(version>2):
+                expand_minimum_byte = infile.read(2)
+                expand_minimum = int.from_bytes(expand_minimum_byte,byteorder="little")
+                temp_obj_size-=2
+            #expand range(v>2)
+            expand_range = 0
+            if(version>2):
+                expand_range_byte = infile.read(2)
+                expand_range = int.from_bytes(expand_range_byte,byteorder="little")
+                temp_obj_size-=2
+            #expand_times(v>2)
+            expand_times = 0
+            if(version>2):
+                expand_times_byte = infile.read(2)
+                expand_times = int.from_bytes(expand_times_byte,byteorder="little")
+                temp_obj_size-=2
+            #electric_boost(v>2)
+            electric_boost = 256
+            if(version>2):
+                electric_boost_byte = infile.read(2)
+                electric_boost = int.from_bytes(electric_boost_byte,byteorder="little")
+                temp_obj_size-=2
+            #pax boost(v>2)
+            pax_boost = 0
+            if(version>2):
+                pax_boost_byte = infile.read(2)
+                pax_boost = int.from_bytes(pax_boost_byte,byteorder="little")
+                temp_obj_size-=2
+            #mail boost(v>2)
+            mail_boost =0
+            if(version>2):
+                mail_boost_byte = infile.read(2)
+                mail_boost = int.from_bytes(mail_boost_byte,byteorder="little")
+                temp_obj_size-=2
+            #electric demand
+            electric_demand=65535
+            if(version>2):
+                electric_demand_byte = infile.read(2)
+                electric_demand = int.from_bytes(electric_demand_byte,byteorder="little")
+                temp_obj_size-=2
+            #pax demand
+            pax_demand = 65535
+            if(version>2):
+                pax_demand_byte = infile.read(2)
+                pax_demand = int.from_bytes(pax_demand_byte,byteorder="little")
+                temp_obj_size-=2
+            #mail demand
+            mail_demand=65535
+            if(version>2):
+                mail_demand_byte = infile.read(2)
+                mail_demand = int.from_bytes(mail_demand_byte,byteorder="little")
+                temp_obj_size-=2
+            #sound(v>3)
+            sound_interval = 0
+            sound_id = 0xffff # no sound id,
+            if(version>3):
+                sound_interval_byte = infile.read(4)
+                sound_id_byte = infile.read(1)
+                temp_obj_size-=5
+                sound_interval = int.from_bytes(sound_interval_byte,byteorder="little")
+                sound_id = int.from_bytes(sound_id_byte,byteorder="little")
+            #smoke(v>4)
+            smokerotateion = 0
+            smoketile_byte_list=[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]]
+            smokeuplift = 0
+            smokelifetime = 0
+            if(version>4):
+                smokerotateion_byte = infile.read(1)
+                temp_obj_size-=1
+                smokerotateion=int.from_bytes(smokerotateion_byte,byteorder="little")
+                for i in range(4):
+                    for j in range(4):
+                        smoketile_byte_list[i][j]=infile.read(2)
+                        temp_obj_size-=2
+                smokeuplift_byte=infile.read(2)
+                temp_obj_size-=2
+                smokeuplift = int.from_bytes(smokeuplift_byte,byteorder="little")
+                smokelifetime_byte=infile.read(2)
+                temp_obj_size-=2
+                smokelifetime = int.from_bytes(smokelifetime_byte,byteorder="little")
+            # sound
+            sound_details_byte = b""
+            if( sound_id == 0xfffe or temp_obj_size >0 ):
+                sound_details_byte = infile.read(temp_obj_size)
+                temp_obj_size = 0
+
+
+            # the next node is building
+            building_node = copy_object(infile,outfile,1,holdflag=1,bytes=b"",need_return=1)
+
+            # other node (smoke)
+            smoke_node = copy_object(infile,outfile,1,holdflag=1,bytes=b"",need_return=1)
+
+            # supplier node
+            supplier_list=[]
+            for i in range(supplier_count):
+                supplier_list.append(read_factory_supplier(infile))
+            # production node
+            production_list=[]
+            for i in range(product_count):
+                production_list.append(read_factory_production(infile))
+
+            # field node
+            field_node = b""
+            if(obj_nchild-2-supplier_count-product_count > 0):
+                field_node+=copy_object(infile,outfile,obj_nchild-2-supplier_count-product_count,holdflag=1,bytes=b"",need_return=1)
+
+            # arrange
+            # some value's change are already done in building_arrange()
+            # placement
+            placement = change_placement_factory(placement,where_show)
+            # productivity
+            productivity = ask_function("productivity",answer=productivity,where_show=where_show,output_type=1)
+            # range
+            range_int = ask_function("productivity range",range_int,where_show,1)
+            # distribution weight
+            distribution_int=ask_function("distribution weight",distribution_int,where_show,1)
+            # color
+            # nochange
+            # field 
+            # nochange
+            # supplier
+            obj_nchild-=supplier_count
+            supplier_list=change_goods_supplier(supplier_list,where_show)
+            supplier_count = len(supplier_list)
+            obj_nchild+=supplier_count
+            # production         
+            obj_nchild-=product_count   
+            production_list=change_goods_production(production_list,where_show)
+            product_count = len(production_list)
+            obj_nchild+=product_count
+            # pax level
+            pax_level = ask_function("pax lavel",answer=pax_level,where_show=where_show,output_type=1)
+            if(write_version>2):
+                # expand probability
+                expand_probability = ask_function("expand probability",expand_probability,where_show,1)
+                # expand range
+                expand_range = ask_function("expand range",expand_range,where_show,1)
+                # expand times
+                expand_times = ask_function("expand times",expand_times,where_show,1)
+                # electric boost
+                electric_boost = ask_function("electric boost",electric_boost,where_show,1)
+                # pax boost
+                pax_boost = ask_function("pax boost",pax_boost,where_show,1)
+                # mail boost
+                mail_boost= ask_function("mail boost",mail_boost,where_show,1)
+                # electric demand
+                electric_demand = ask_function("electric demand",electric_demand,where_show,1)
+                # pax demand
+                pax_demand = ask_function("pax demand",pax_demand,where_show,1)
+                # mail demand
+                mail_demand = ask_function("mail demand",mail_demand,where_show,1)
+            
+
+            # output
+            #placement
+            temp_headnode+= placement.to_bytes(2,byteorder="little")
+            new_obj_size+=2
+            #productivity
+            temp_headnode+=productivity.to_bytes(2,byteorder="little")
+            new_obj_size+=2
+            #range
+            temp_headnode+=range_int.to_bytes(2,byteorder="little")
+            new_obj_size+=2
+            #distribution weight
+            temp_headnode+=distribution_int.to_bytes(2,byteorder="little")
+            new_obj_size+=2
+            #color
+            temp_headnode+=color_int.to_bytes(1,byteorder="little")
+            new_obj_size+=1
+            #fields(v>1)
+            if(new_version>1):
+                temp_headnode+=fields_int.to_bytes(1,byteorder="little")
+                new_obj_size+=1
+            #supplier count
+            temp_headnode+=supplier_count.to_bytes(2,byteorder="little")
+            new_obj_size+=2
+            #product count
+            temp_headnode+=product_count.to_bytes(2,byteorder="little")
+            new_obj_size+=2
+            #pax level
+            temp_headnode+=pax_level.to_bytes(2,byteorder="little")
+            new_obj_size+=2
+            #expand_probability(v>2)
+            if(new_version>2):
+                temp_headnode+=expand_probability.to_bytes(2,byteorder="little")
+                new_obj_size+=2
+            #expand_minimum(v>2)
+            if(new_version>2):
+                temp_headnode+=expand_minimum.to_bytes(2,byteorder="little")
+                new_obj_size+=2
+            #expand range(v>2)
+            if(new_version>2):
+                temp_headnode+=expand_range.to_bytes(2,byteorder="little")
+                new_obj_size+=2
+            #expand_times(v>2)
+            if(new_version>2):
+                temp_headnode+=expand_times.to_bytes(2,byteorder="little")
+                new_obj_size+=2
+            #electric_boost(v>2)
+            if(new_version>2):
+                temp_headnode+=electric_boost.to_bytes(2,byteorder="little")
+                new_obj_size+=2
+            #pax boost(v>2)
+            if(new_version>2):
+                temp_headnode+=pax_boost.to_bytes(2,byteorder="little")
+                new_obj_size+=2
+            #mail boost(v>2)
+            if(new_version>2):
+                temp_headnode+=mail_boost.to_bytes(2,byteorder="little")
+                new_obj_size+=2
+            #electric demand
+            if(new_version>2):
+                temp_headnode+=electric_demand.to_bytes(2,byteorder="little")
+                new_obj_size+=2
+            #pax demand
+            if(new_version>2):
+                temp_headnode+=pax_demand.to_bytes(2,byteorder="little")
+                new_obj_size+=2
+            #mail demand
+            if(new_version>2):
+                temp_headnode+=mail_demand.to_bytes(2,byteorder="little")
+                new_obj_size+=2
+            #sound(v>3)
+            if(new_version>3):
+                temp_headnode+=sound_interval.to_bytes(4,byteorder="little")
+                temp_headnode+=sound_id.to_bytes(1,byteorder="little")
+                new_obj_size+=5
+            #smoke(v>4)
+            if(new_version>4):
+                temp_headnode+=smokerotateion.to_bytes(1,byteorder="little")
+                new_obj_size+=1
+                for i in range(4):
+                    for j in range(4):
+                        temp_headnode+=smoketile_byte_list[i][j]
+                        new_obj_size+=2
+                new_obj_size+=2
+                temp_headnode+=smokeuplift.to_bytes(2,byteorder="little")
+                new_obj_size+=2
+                temp_headnode+=smokelifetime.to_bytes(2,byteorder="little")
+            # sound file name
+            temp_headnode+=sound_details_byte
+            new_obj_size+=len(sound_details_byte)
+            new_node=obj_nchild
+            # new node writing
+            return_txt=b""
+            return_txt+=new_node.to_bytes(2,byteorder="little")
+            return_txt+=new_obj_size.to_bytes(2,byteorder="little")
+            return_txt+=temp_headnode
+            outfile.write(return_txt)
+
+
+            # the next node is building
+            outfile.write(building_node)
+
+            # other node (smoke)
+            outfile.write(smoke_node)
+
+            # supplier node
+            for i in range(supplier_count):
+                write_factory_supplier(outfile,supplier_list[i])
+            # production node
+            for i in range(product_count):
+                write_factory_production(outfile,production_list[i])
+
+            # field node
+            outfile.write(field_node)
+            return True
 
 
             
