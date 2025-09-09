@@ -1180,7 +1180,7 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
                 if(temp_sup[i+1]<0 or temp_sup[i+1]>0xFFFF):
                     print_function("wrong input",where_show)
                     return change_goods_supplier(supplier_list,where_show)
-            supplier_list.add(temp_sup)
+            supplier_list.append(temp_sup)
             return change_goods_supplier(supplier_list,where_show)       
         else:
             print_function("wrong input",where_show)
@@ -1241,7 +1241,7 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
                 if(temp_sup[i+1]<0 or temp_sup[i+1]>0xFFFF):
                     print_function("wrong input",where_show)
                     return change_goods_production(production_list,where_show)
-            production_list.add(temp_sup)
+            production_list.append(temp_sup)
             return change_goods_production(production_list,where_show)       
         else:
             print_function("wrong input",where_show)
@@ -1403,7 +1403,8 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
                 sound_id = int.from_bytes(sound_id_byte,byteorder="little")
             #smoke(v>4)
             smokerotateion = 0
-            smoketile_byte_list=[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]]
+            b00_2 = bytes(2)
+            smoketile_byte_list=[[b00_2,b00_2,b00_2,b00_2],[b00_2,b00_2,b00_2,b00_2],[b00_2,b00_2,b00_2,b00_2],[b00_2,b00_2,b00_2,b00_2]]
             smokeuplift = 0
             smokelifetime = 0
             if(version>4):
