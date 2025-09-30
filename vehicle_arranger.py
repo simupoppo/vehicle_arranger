@@ -1394,7 +1394,7 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
                 temp_obj_size-=2
             #sound(v>3)
             sound_interval = 0
-            sound_id = 0xffff # no sound id,
+            sound_id = 0xff # no sound id,
             if(version>3):
                 sound_interval_byte = infile.read(4)
                 sound_id_byte = infile.read(1)
@@ -1567,6 +1567,7 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
             #sound(v>3)
             if(new_version>3):
                 temp_headnode+=sound_interval.to_bytes(4,byteorder="little")
+                print(str(sound_id))
                 temp_headnode+=sound_id.to_bytes(1,byteorder="little")
                 new_obj_size+=5
             #smoke(v>4)
@@ -1620,13 +1621,13 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
     if infile_path==outfile_path:
         samefile_flag=1
         print_function("an output file and an input file are same.")
-        outfile_path="temp_"+outfile_path
+        outfile_path=outfile_path[:-4]+"_temp.pak"
 
     try:
         infile=open(infile_path,"br")
         outfile=open(outfile_path,"bw")
     except Exception:
-        print_function("No file!",where_show)
+        print_function("No file!"+infile_path+outfile_path,where_show)
         return False
     a=copy_header(infile,outfile)
     if not a:
