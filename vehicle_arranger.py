@@ -457,13 +457,13 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
             temp_obj_size-=1
         gear_int=int.from_bytes(gear_byte,byteorder="little")
         # waytype
-        waytype_node+=copy_node(infile,1)
+        waytype_node=copy_node(infile,1)
         temp_obj_size-=1
         # sound id
-        soundid_node+=copy_node(infile,1)
+        soundid_node=copy_node(infile,1)
         temp_obj_size-=1
         # engine type
-        enginetype_node+=copy_node(infile,1)
+        enginetype_node=copy_node(infile,1)
         temp_obj_size-=1
         # length
         if version>6:
@@ -495,7 +495,7 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
         # get name
         name = read_text(infile)
         # other bytes: copyright, images etc.
-        other_object += copy_object(infile,outfile,5,holdflag=1,bytes=b"",need_return=1)
+        other_object = copy_object(infile,outfile,5,holdflag=1,bytes=b"",need_return=1)
         # leader and trailer reading
         temp_leaders=[]
         temp_trailers=[]
