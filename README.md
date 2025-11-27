@@ -17,7 +17,6 @@ If you have any questions, please contact us @simu__poppo or https://simutransho
 
 ## Lisence
 CC-BY 4.0  
-Modification and redistribution of this program is permitted
 
 ## Disclaimer
 The author assumes no responsibility for any damages resulting from the downloading, installation, use, or distribution of this program, or from the use, distribution, or any other use or distribution of materials generated using this program.
@@ -41,7 +40,6 @@ simupoppo(@simu__poppo)
 お気づきの点がございましたら、@simu__poppoまたは https://simutranshouse.wixsite.com/simutp までお問い合わせください。
 ## ライセンス
 CC-BY 4.0  
-このプログラムの改造、再配布について制限はございません。
 ## 免責事項
 本プログラムのダウンロード、インストール、使用、頒布および本プログラムを使用し作成したファイルの使用、頒布、その他により発生したいかなる損害について、作者は一切の責任を負いかねます。
 ## リリースノート
