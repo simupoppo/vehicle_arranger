@@ -226,10 +226,167 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
     def copy_node(infile,node):
         temp_node=infile.read(node)
         return temp_node
+    def read_imagelist(infile):
+        obj_type = infile.read(4)
+        obj_nchild_byte = infile.read(2)
+        obj_size_byte = infile.read(2)
+        obj_nchild = int.from_bytes(obj_nchild_byte,byteorder="little")
+        obj_size = int.from_bytes(obj_size_byte,byteorder="little")
+        return_list = []
+        if(obj_type==b"IMG2"):
+            infile.read(4)
+            return_list.append(b"IMG2")
+            for i in range(obj_nchild):
+                return_list.append(read_imagelist(infile))
+            return return_list
+        if(obj_type==b"IMG1"):
+            infile.read(4)
+            return_list.append(b"IMG1")
+            for i in range(obj_nchild):
+                return_list.append(read_image(infile))
+            return return_list
+        else:
+            infile.read(6)
+            return return_list
+    def write_imagelist(outfile,write_list):
+        if(len(write_list)==0):
+            write_xref(outfile,"",b"IMG1")
+            return
+        obj_type=write_list[0]
+        obj_nchild = len(write_list)-1
+        obj_size = 4
+        other_size = 0
+        outfile.write(obj_type)
+        outfile.write(obj_nchild.to_bytes(2,byteorder="little"))
+        outfile.write(obj_size.to_bytes(2,byteorder="little"))
+        outfile.write(obj_nchild.to_bytes(2,byteorder="little"))
+        outfile.write(other_size.to_bytes(2,byteorder="little"))
+        if(obj_type==b"IMG2"):
+            for i in range(obj_nchild):
+                write_imagelist(outfile,write_list[i+1])
+            return
+        if(obj_type==b"IMG1"):
+            for i in range(obj_nchild):
+                write_image(outfile,write_list[i+1])
+    def read_image(infile):
+        obj_type = infile.read(4)
+        obj_nchild_byte = infile.read(2)
+        obj_size_byte = infile.read(2)
+        return_byte = obj_type+obj_nchild_byte+obj_size_byte
+        if(obj_type!=b'IMG\x00'):
+            return b""
+        obj_nchild = int.from_bytes(obj_nchild_byte,byteorder="little")
+        obj_size = int.from_bytes(obj_size_byte,byteorder="little")
+        if obj_size_byte == b"\xFFFF":
+            obj_size_byte32 = infile.read(4)
+            obj_size = int.from_bytes(obj_size_byte32,byteorder="little")
+            return_byte+=obj_size_byte32
+        return_byte+=infile.read(obj_size)
+        return return_byte
+    def write_image(outfile,write_nodes):
+        outfile.write(write_nodes)
+    def change_image_light(node):
+        obj_type=node[0:4]
+        obj_nchild_byte=node[4:6]
+        obj_size_byte=node[6:8]
+        obj_size = int.from_bytes(obj_size_byte,byteorder="little")
+        temp_node_num = 8
+        return_node = obj_type+obj_nchild_byte+obj_size_byte
+        if(obj_type!=b"IMG\x00"):
+            return b""
+        if obj_size_byte == b"\xFFFF":
+            obj_size_byte32 = node[8:12]
+            return_node+=obj_size_byte32
+            obj_size = int.from_bytes(obj_size_byte32,byteorder="little")
+            temp_node_num+=4
+        byte0=node[temp_node_num:temp_node_num+1]
+        temp_node_num+=1
+        return_node+=byte0
+        byte1=node[temp_node_num:temp_node_num+1]
+        temp_node_num+=1
+        return_node+=byte1
+        byte2=node[temp_node_num:temp_node_num+1]
+        temp_node_num+=1
+        return_node+=byte2
+        byte3=node[temp_node_num:temp_node_num+1]
+        temp_node_num+=1
+        return_node+=byte3
+        byte4=node[temp_node_num:temp_node_num+1]
+        temp_node_num+=1
+        return_node+=byte4
+        byte5=node[temp_node_num:temp_node_num+1]
+        temp_node_num+=1
+        return_node+=byte5
+        byte6=node[temp_node_num:temp_node_num+1]
+        temp_node_num+=1
+        return_node+=byte6
+        byte7=node[temp_node_num:temp_node_num+1]
+        temp_node_num+=1
+        return_node+=byte7
+        byte8=node[temp_node_num:temp_node_num+1]
+        temp_node_num+=1
+        return_node+=byte8
+        byte9=node[temp_node_num:temp_node_num+1]
+        temp_node_num+=1
+        return_node+=byte9
+        if obj_size==int.from_bytes(byte4+byte5+byte6+byte7,byteorder="little")*2+12:
+            x_min=int.from_bytes(byte0,byteorder="little")
+            x_width=int.from_bytes(byte1,byteorder="little")
+            y_min=int.from_bytes(byte2,byteorder="little")
+            y_width=int.from_bytes(byte3,byteorder="little")
+            byte10=node[temp_node_num:temp_node_num+1]
+            return_node+=byte10
+            temp_node_num+=1
+            zoomable=int.from_bytes(byte10,byteorder="little")
+            byte11=node[temp_node_num:temp_node_num+1]
+            return_node+=byte11
+            temp_node_num+=1
+            imglen=obj_size-12
+            img_version=0
+        else:
+            x_min=int.from_bytes(byte0+byte1,byteorder="little")
+            y_min=int.from_bytes(byte2+byte3,byteorder="little")
+            img_version=int.from_bytes(byte6,byteorder="little")
+            if img_version==2 or img_version==1:
+                x_width=int.from_bytes(byte4,byteorder="little")
+                y_width=int.from_bytes(byte5,byteorder="little")
+            elif img_version==3:
+                x_width=int.from_bytes(byte4+byte5,byteorder="little")
+                y_width=int.from_bytes(byte7+byte8,byteorder="little")
+            else: #img_version==3
+                x_width=int.from_bytes(byte4+byte5,byteorder="little")
+                y_width=int.from_bytes(byte7+byte8,byteorder="little")
+            zoomable=int.from_bytes(byte9,byteorder="little")
+            imglen=obj_size-10
+        for i in range(imglen):
+            temp_node = node[temp_node_num:temp_node_num+2]
+            temp_node_num+=2
+            temp_value = int.from_bytes(temp_node,byteorder="little")
+            if temp_value==0x8000+18:
+                return_value = 0x8000+19
+                return_node+=return_value.to_bytes(2,byteorder="little")
+            elif temp_value==0x8000+19:
+                return_value = 0x8000+18
+                return_node+=return_value.to_bytes(2,byteorder="little")
+            else:
+                return_node+=temp_node
+        return return_node
+    def add_reverse_images(emptyimage):
+        if emptyimage[0]!=b"IMG1":
+            print_function("BAD IMAGES",where_show)
+            return
+        return_list=[]
+        return_list.append(b"IMG2")
+        for i in range(len(emptyimage)-1):
+            emp_image=emptyimage[i+1]
+            rev_image=change_image_light(emp_image)
+            direc_list=[b"IMG1",emp_image,rev_image]
+            return_list.append(direc_list)   
+        return return_list     
     def Remove_None(list):
         output=[]
         for i in range(len(list)):
-            if str(list[i])!="none" or list[i]==b"\x00":
+            if str(list[i])!="none" or list[i]==b"\x00" or list[i] == b"":
                 output.append(list[i])
             # print(output)
         return output
@@ -483,19 +640,27 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
         trailer=int.from_bytes(trailer_byte,byteorder="little")
         temp_obj_size-=1
         # freight image number (only for version updating)
-        others_byte=b""
-        if version<8 and write_version>7:
-            freight_image_number_int=0
-            others_byte+=freight_image_number_int.to_bytes(1,byteorder="little")
-            new_obj_size+=1
+        if version>7:
+            freight_image_number_byte = infile.read(1)
+            freight_image_number_int = int.from_bytes(freight_image_number_byte,byteorder="little")
+            temp_obj_size-=1
+        else:
+            freight_image_number_int = 1
         # other_params_reading
+        others_byte=b""
         others_byte+=infile.read(temp_obj_size)
         new_obj_size+=temp_obj_size
         temp_obj_size=0
         # get name
         name = read_text(infile)
         # other bytes: copyright, images etc.
-        other_object = copy_object(infile,outfile,5,holdflag=1,bytes=b"",need_return=1)
+        copyright_node = copy_object(infile,outfile,1,holdflag=1,bytes=b"",need_return=1)
+        goods = read_xref(infile,b'GOOD')
+        smoke_node = copy_object(infile,outfile,1,holdflag=1,bytes=b"",need_return=1)
+        empty_image = read_imagelist(infile)
+        freight_image = read_imagelist(infile)
+        if(  len(freight_image)==0  ):
+            freight_image_number_int = 0
         # leader and trailer reading
         temp_leaders=[]
         temp_trailers=[]
@@ -503,6 +668,9 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
             temp_leaders.append(read_xref(infile))
         for i in range(trailer):
             temp_trailers.append(read_xref(infile))
+
+
+
         # now ask to write
         # show and ask name change
         name = ask_function("Name = "+str(name),name,where_show,0)
@@ -562,7 +730,10 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
         # monthly maintainance
         if write_version>8:
             mcost = ask_function("mcost = "+str(mcost),mcost,where_show,1)
-            if write_version>10:
+            if write_version>11:
+                temp_headnode+=(mcost.to_bytes(8,byteorder="little"))
+                new_obj_size+=8
+            elif write_version>10:
                 temp_headnode+=(mcost.to_bytes(4,byteorder="little"))
                 new_obj_size+=4
             else:
@@ -576,13 +747,6 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
         else:
             temp_headnode+=(date_to_byte(intro_y,intro_m))
         new_obj_size+=2
-        # engine gear
-        if write_version>5:
-            temp_headnode+=(gear_int.to_bytes(2,byteorder="little"))
-            new_obj_size+=2
-        else:
-            temp_headnode+=(gear_int.to_bytes(1,byteorder="little"))
-            new_obj_size+=1
         # retire year
         if write_version>2:
             retire_y = ask_function("retire_year :"+str(retire_y),retire_y,where_show,1)
@@ -592,6 +756,13 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
             else:
                 temp_headnode+=(date_to_byte(retire_y,retire_m))
             new_obj_size+=2
+        # engine gear
+        if write_version>5:
+            temp_headnode+=(gear_int.to_bytes(2,byteorder="little"))
+            new_obj_size+=2
+        else:
+            temp_headnode+=(gear_int.to_bytes(1,byteorder="little"))
+            new_obj_size+=1
         # waytype_node
         temp_headnode+=waytype_node
         new_obj_size+=1
@@ -600,6 +771,7 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
         new_obj_size+=1
         # engine type
         temp_headnode+=enginetype_node
+        new_obj_size+=1
         # length
         vlength_int = ask_function("mcost = "+str(vlength_int),vlength_int,where_show,1)
         if write_version>6:
@@ -610,21 +782,47 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
         new_obj_size+=1
         result_trailer_list=connecting_changing(temp_trailers,l_or_r= "trailer")
         new_obj_size+=1
-        new_node=obj_nchild-leader-trailer+len(result_leader_list)+len(result_trailer_list)
+        # reverse image if needed
+        new_freight_image_number = 0
+        if(  freight_image_number_int>0 or write_version<8  ):
+            print_function("Freight Images already exists.",where_show)
+        else:
+            reverse_need=ask_function("add reverse images? [y]/n", "y", where_show, 0)
+            if(reverse_need == "y"):
+                freight_image = add_reverse_images(empty_image)
+            new_freight_image_number = 2
+            freight_image_number_int = new_freight_image_number
+        if write_version>7:
+            new_obj_size+=1
+            
+
+        # get new child number
+        new_node=obj_nchild-leader-trailer+len(result_leader_list)+len(result_trailer_list)+new_freight_image_number+1
         # new node writing
         outfile.write(new_node.to_bytes(2,byteorder="little"))
         outfile.write(new_obj_size.to_bytes(2,byteorder="little"))
         outfile.write(temp_headnode)
         outfile.write(len(result_leader_list).to_bytes(1,byteorder="little"))
         outfile.write(len(result_trailer_list).to_bytes(1,byteorder="little"))
+        if write_version>7:
+            outfile.write(freight_image_number_int.to_bytes(1,byteorder="little"))
         outfile.write(others_byte)
         write_text(outfile,name)
-        outfile.write(other_object)
+        outfile.write(copyright_node)
+        write_xref(outfile,goods,b"GOOD",fatal_flag=1)
+        outfile.write(smoke_node)
+        write_imagelist(outfile,empty_image)
+        write_imagelist(outfile,freight_image)
         # write new leader list
         for i in range(len(result_leader_list)):
             write_xref(outfile,result_leader_list[i])
         for j in range(len(result_trailer_list)):
             write_xref(outfile,result_trailer_list[j])
+        # add reverse images setting
+        if new_freight_image_number==2:
+            write_xref(outfile,goods,b"GOOD",fatal_flag=0)
+            write_xref(outfile,"Reverse",b"GOOD",fatal_flag=0)
+            write_xref(outfile,goods,b"GOOD",fatal_flag=0)
         # write another nodes
         ANOTHERS = obj_nchild-6-leader-trailer
         if ANOTHERS>0:
