@@ -12,8 +12,15 @@ python vehicle_arranger.py input_file_path (output_file_path)
 input_file_path : string, a path of original pak file.  
 output_file_path : string, a path of modifies pak file. If not writing output_file_path, output_file_path will be the same as input_file_path
 
+```> python vehicle_arranger.py XXX_input.pak [XXX_output.pak]```
+
 ### simple reverse image creation
-This program can make vehicle's reversed image for OTRPatch. When a vehicle does not have freight images, we add reversed images from empty images which yellow and red color swapped.
+This program can make vehicle's reversed image for OTRPatch. When a vehicle does not have freight images, we add reversed images from empty images which yellow and red color swapped.  
+If you only need reversing images, you can use below command:  
+```> python vehicle_arranger.py XXX_input.pak [XXX_output.pak] -R```  
+or  
+```> python vehicle_arranger.py XXX_input.pak [XXX_output.pak] --reverse```
+
 ## Credit
 simupoppo (@simu__poppo)  
 If you have any questions, please contact us @simu__poppo or https://simutranshouse.wixsite.com/simutp
@@ -43,6 +50,9 @@ The author assumes no responsibility for any damages resulting from the download
 2025年12月8日アップデート版より、simutrans OTRP用に簡易的に反転画像を生成する機能を追加しました。  
 読み込んだ車両のpakファイルに対して、`freightimagetype[1]=Reverse`を追加し、黄色の特殊色と赤色の特殊色を入れ替えた画像を`FreightImage[1]`に追加します。  
 ※既に積載時画像が設定済みの車両に対しては反転画像を生成しません。
+
+反転画像生成機能だけを使いたい場合は、次のコマンドを使用できます：  
+```> python vehicle_arranger.py XXX_input.pak XXX_output.pak -R```
 
 ## 著作者
 simupoppo(@simu__poppo)  
