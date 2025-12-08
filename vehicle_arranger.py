@@ -20,17 +20,24 @@ def UI_function():
 
 # main: only read args
 def main():
-    if len(args)>2:
-        infile_path=args[1]
-        outfile_path=args[2]
+    input_list = args
+    reverse_only=0
+    for i in range(len(args)):
+        if(args[i]=="-R" or args[i]=="--reverse"):
+            reverse_only=1
+            input_list.pop(i)
+    if len(input_list)>2:
+        infile_path=input_list[1]
+        outfile_path=input_list[2]
         where_show=0
-    elif len(args)==2:
-        infile_path=args[1]
-        outfile_path=args[1]
+    elif len(input_list)==2:
+        infile_path=input_list[1]
+        outfile_path=input_list[1]
         where_show=0
     else:
         infile_path,outfile_path,where_show=UI_function()
-    vehicle_arrange(infile_path,outfile_path,where_show)
+    vehicle_arrange(infile_path,outfile_path,where_show,reverse_only)
+
 
 
 
@@ -70,7 +77,7 @@ def ask_function(texts,answer,where_show=0,output_type=0):
         return output
 
 # main_function
-def vehicle_arrange(infile_path,outfile_path,where_show=0):
+def vehicle_arrange(infile_path,outfile_path,where_show=0,reverse_only=0):
     climate_list=["water", "desert", "tropic", "mediterran", "temperate", "tundra", "rocky", "arctic"]
     def byte_to_date(inbyte,version=1):
         indate=int.from_bytes(inbyte,byteorder="little")
@@ -499,13 +506,17 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
             version=0
         # pakfile version changing
         if version>0:
-            ask_version=ask_function("Do you want to change pak version to 0x800C? yes=1,no=other","1",where_show,0)
-        if ask_version=="1":
+            if reverse_only==0:
+                ask_version=ask_function("Do you want to change pak version to 0x800C? yes=1,no=other","1",where_show,0)
+            else:
+                ask_version="0"
+        if (reverse_only==1 and version<8) or ask_version=="1":
             print_function("change version",where_show)
             new_version=0x800c
             write_version=new_version&0x7FFF
         else:
-            print_function("NOT change version",where_show)
+            if reverse_only==0:
+                print_function("NOT change version",where_show)
             new_version=version|0x8000
             write_version=version
         temp_obj_size-=2
@@ -673,12 +684,14 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
 
         # now ask to write
         # show and ask name change
-        name = ask_function("Name = "+str(name),name,where_show,0)
+        if reverse_only==0:
+            name = ask_function("Name = "+str(name),name,where_show,0)
         # version
         temp_headnode+=new_version.to_bytes(2,byteorder="little")
         new_obj_size+=2
         # cost
-        price = ask_function("cost = "+str(price),price,where_show,1)
+        if reverse_only==0:
+            price = ask_function("cost = "+str(price),price,where_show,1)
         if(write_version<12):
             temp_headnode+=(price.to_bytes(4,byteorder="little"))
             new_obj_size+=4
@@ -686,20 +699,24 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
             temp_headnode+=(price.to_bytes(8,byteorder="little"))
             new_obj_size+=8
         # capacity
-        capacity = ask_function("capacity = "+str(capacity),capacity,where_show,1)
+        if reverse_only==0:
+            capacity = ask_function("capacity = "+str(capacity),capacity,where_show,1)
         temp_headnode+=(capacity.to_bytes(2,byteorder="little"))
         new_obj_size+=2
         # loading time
         if write_version>8:
-            l_time = ask_function("loading time = "+str(l_time),l_time,where_show,1)
+            if reverse_only==0:
+                l_time = ask_function("loading time = "+str(l_time),l_time,where_show,1)
             temp_headnode+=(l_time.to_bytes(2,byteorder="little"))
             new_obj_size+=2
         # speed
-        speed_int = ask_function("top speed = "+str(speed_int),speed_int,where_show,1)
+        if reverse_only==0:
+            speed_int = ask_function("top speed = "+str(speed_int),speed_int,where_show,1)
         temp_headnode+=(speed_int.to_bytes(2,byteorder="little"))
         new_obj_size+=2
         # weight
-        weight = ask_function("weight = "+str(weight),weight,where_show,1)
+        if reverse_only==0:
+            weight = ask_function("weight = "+str(weight),weight,where_show,1)
         if write_version>9:
             temp_headnode+=(weight.to_bytes(4,byteorder="little"))
             new_obj_size+=4
@@ -708,11 +725,13 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
             new_obj_size+=2
         # axle_load
         if write_version>8:
-            axle_int=ask_function("axle_load="+str(axle_int),axle_int,where_show,1)
+            if reverse_only==0:
+                axle_int=ask_function("axle_load="+str(axle_int),axle_int,where_show,1)
             temp_headnode+=(axle_int.to_bytes(2,byteorder="little"))
             new_obj_size+=2 
         # power
-        power = ask_function("power = "+str(power)+"kW",power,where_show,1)
+        if reverse_only==0:
+            power = ask_function("power = "+str(power)+"kW",power,where_show,1)
         if write_version>5:
             temp_headnode+=(power.to_bytes(4,byteorder="little"))
             new_obj_size+=4
@@ -720,7 +739,8 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
             temp_headnode+=(power.to_bytes(2,byteorder="little"))
             new_obj_size+=2
         # runnin const
-        rcost = ask_function("running cost = "+str(rcost),rcost,where_show,1)
+        if reverse_only==0:
+            rcost = ask_function("running cost = "+str(rcost),rcost,where_show,1)
         if write_version<12:
             temp_headnode+=(rcost.to_bytes(2,byteorder="little"))
             new_obj_size+=2
@@ -729,7 +749,8 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
             new_obj_size+=8
         # monthly maintainance
         if write_version>8:
-            mcost = ask_function("mcost = "+str(mcost),mcost,where_show,1)
+            if reverse_only==0:
+                mcost = ask_function("mcost = "+str(mcost),mcost,where_show,1)
             if write_version>11:
                 temp_headnode+=(mcost.to_bytes(8,byteorder="little"))
                 new_obj_size+=8
@@ -740,8 +761,9 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
                 temp_headnode+=(mcost.to_bytes(2,byteorder="little"))
                 new_obj_size+=2
         # intro year
-        intro_y = ask_function("intro_year :"+str(intro_y),intro_y,where_show,1)
-        intro_m = ask_function("intro_month:"+str(intro_m),intro_m,where_show,1)
+        if reverse_only==0:
+            intro_y = ask_function("intro_year :"+str(intro_y),intro_y,where_show,1)
+            intro_m = ask_function("intro_month:"+str(intro_m),intro_m,where_show,1)
         if write_version<5:
             temp_headnode+=(date_to_byte(intro_y,intro_m,version=0))
         else:
@@ -749,8 +771,9 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
         new_obj_size+=2
         # retire year
         if write_version>2:
-            retire_y = ask_function("retire_year :"+str(retire_y),retire_y,where_show,1)
-            retire_m = ask_function("retire_month:"+str(retire_m),retire_m,where_show,1)
+            if reverse_only==0:
+                retire_y = ask_function("retire_year :"+str(retire_y),retire_y,where_show,1)
+                retire_m = ask_function("retire_month:"+str(retire_m),retire_m,where_show,1)
             if write_version<5:
                 temp_headnode+=(date_to_byte(retire_y,retire_m,version=0))
             else:
@@ -773,22 +796,32 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0):
         temp_headnode+=enginetype_node
         new_obj_size+=1
         # length
-        vlength_int = ask_function("mcost = "+str(vlength_int),vlength_int,where_show,1)
+        if reverse_only==0:
+            vlength_int = ask_function("length = "+str(vlength_int),vlength_int,where_show,1)
         if write_version>6:
             temp_headnode+=(vlength_int.to_bytes(1,byteorder="little"))
             new_obj_size+=1
         # leader and trailer changing
-        result_leader_list=connecting_changing(temp_leaders,"leader")
-        new_obj_size+=1
-        result_trailer_list=connecting_changing(temp_trailers,l_or_r= "trailer")
-        new_obj_size+=1
+        if reverse_only==0:
+            result_leader_list=connecting_changing(temp_leaders,"leader")
+            new_obj_size+=1
+            result_trailer_list=connecting_changing(temp_trailers,l_or_r= "trailer")
+            new_obj_size+=1
+        else:
+            result_leader_list = temp_leaders
+            new_obj_size+=1
+            result_trailer_list = temp_trailers
+            new_obj_size+=1
         # reverse image if needed
         new_freight_image_number = 0
         if(  freight_image_number_int>0 or write_version<8  ):
             print_function("Freight Images already exists.",where_show)
         else:
-            reverse_need=ask_function("add reverse images? [y]/n", "y", where_show, 0)
-            if(reverse_need == "y"):
+            if reverse_only==0:
+                reverse_need=ask_function("add reverse images? [y]/n", "y", where_show, 0)
+            else:
+                reverse_need = "y"
+            if reverse_need == "y":
                 freight_image = add_reverse_images(empty_image)
             new_freight_image_number = 2
             freight_image_number_int = new_freight_image_number
