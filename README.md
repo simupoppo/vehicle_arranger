@@ -11,6 +11,9 @@ python vehicle_arranger.py input_file_path (output_file_path)
 
 input_file_path : string, a path of original pak file.  
 output_file_path : string, a path of modifies pak file. If not writing output_file_path, output_file_path will be the same as input_file_path
+
+### simple reverse image creation
+This program can make vehicle's reversed image for OTRPatch. When a vehicle does not have freight images, we add reversed images from empty images which yellow and red color swapped.
 ## Credit
 simupoppo (@simu__poppo)  
 If you have any questions, please contact us @simu__poppo or https://simutranshouse.wixsite.com/simutp
@@ -26,6 +29,7 @@ The author assumes no responsibility for any damages resulting from the download
 - 20.03.2024 ver.0.1 correction of misprints
 - 27.04.2024 ver.1 arranging vehile paks' versions.
 - 24.08.2025 ver.2 Add Building and Factory editing.  
+- 08.12.2025 ver.3 Fix version12 of vehicle's maintenance cost, Add simple Reverse image creation mode.
 
 # vehicle_arranger 取扱説明書
 このプログラムはsimutransの乗り物アドオンのpakファイルを編集するプログラムです。
@@ -35,6 +39,11 @@ The author assumes no responsibility for any damages resulting from the download
 このプログラムはpythonファイルです。
 
 起動し、入力ファイルと出力ファイル名を入力すると、入力ファイル内の乗り物アドオンの詳細な設定事項の一部がコマンドラインに出力されます。コマンドラインより修正が必要な事項を記入してください。何も入力しなかった場合(連結の設定ではxを入力した場合)、または不適当な入力の場合、設定事項は変更されません。
+### 簡易反転画像生成機能について
+2025年12月8日アップデート版より、simutrans OTRP用に簡易的に反転画像を生成する機能を追加しました。  
+読み込んだ車両のpakファイルに対して、`freightimagetype[1]=Reverse`を追加し、黄色の特殊色と赤色の特殊色を入れ替えた画像を`FreightImage[1]`に追加します。  
+※既に積載時画像が設定済みの車両に対しては反転画像を生成しません。
+
 ## 著作者
 simupoppo(@simu__poppo)  
 お気づきの点がございましたら、@simu__poppoまたは https://simutranshouse.wixsite.com/simutp までお問い合わせください。
@@ -46,4 +55,5 @@ CC-BY 4.0
 - 2024年3月14日 ver.0 リリース  
 - 2024年3月20日 ver.0.1 誤植の修正
 - 2024年4月27日 ver.1 pakファイルバージョン変更に対応
-- 2025年8月24日 ver.2 建物・産業アドオンに対応  
+- 2025年8月24日 ver.2 建物・産業アドオンに対応
+- 2025年12月8日 ver.3 車両ver12アップデート時のバグ修正、簡易反転画像生成機能追加
