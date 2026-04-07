@@ -507,12 +507,12 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0,reverse_only=0):
         # pakfile version changing
         if version>0:
             if reverse_only==0:
-                ask_version=ask_function("Do you want to change pak version to 0x800C? yes=1,no=other","1",where_show,0)
+                ask_version=ask_function("Do you want to change pak version to 0x800D? yes=1,no=other","1",where_show,0)
             else:
                 ask_version="0"
         if (reverse_only==1 and version<8) or ask_version=="1":
             print_function("change version",where_show)
-            new_version=0x800c
+            new_version=0x800d
             write_version=new_version&0x7FFF
         else:
             if reverse_only==0:
@@ -538,13 +538,17 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0,reverse_only=0):
         capacity = int.from_bytes(capacity_byte,byteorder="little")
         temp_obj_size-=2
         # loading_time
-        if version>8:
+        if version < 9:
+            l_time = 1000
+        elif version<13:
             # depends on the version
             l_time_byte = infile.read(2)
             temp_obj_size-=2
             l_time = int.from_bytes(l_time_byte,byteorder="little")
         else:
-            l_time = 1000
+            l_time_byte = infile.read(4)
+            temp_obj_size-=4
+            l_time = int.from_bytes(l_time_byte,byteorder="little")
         # speed
         speed_byte = infile.read(2)
         speed_int = int.from_bytes(speed_byte,byteorder="little")
@@ -707,8 +711,12 @@ def vehicle_arrange(infile_path,outfile_path,where_show=0,reverse_only=0):
         if write_version>8:
             if reverse_only==0:
                 l_time = ask_function("loading time = "+str(l_time),l_time,where_show,1)
-            temp_headnode+=(l_time.to_bytes(2,byteorder="little"))
-            new_obj_size+=2
+            if write_version<13:
+                temp_headnode+=(l_time.to_bytes(2,byteorder="little"))
+                new_obj_size+=2
+            else:
+                temp_headnode+=(l_time.to_bytes(4,byteorder="little"))
+                new_obj_size+=4
         # speed
         if reverse_only==0:
             speed_int = ask_function("top speed = "+str(speed_int),speed_int,where_show,1)
